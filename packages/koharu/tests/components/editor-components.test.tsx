@@ -479,6 +479,75 @@ describe('greenfield editor', () => {
     expect(screen.queryByText('01')).not.toBeInTheDocument()
   })
 
+  it('navigates between pages with the arrow keys without wrapping or interrupting text input', async () => {
+    installProject()
+    const pages = [
+      { id: 'page', label: 'Page 1', size: { width: 1000, height: 1500 }, layers: [], regions: [] },
+      {
+        id: 'page-2',
+        label: 'Page 2',
+        size: { width: 1000, height: 1500 },
+        layers: [],
+        regions: [],
+      },
+      {
+        id: 'page-3',
+        label: 'Page 3',
+        size: { width: 1000, height: 1500 },
+        layers: [],
+        regions: [],
+      },
+    ]
+    queryClient.setQueryData(
+      pagesKey,
+      pages.map((page) => ({
+        id: page.id,
+        label: page.label,
+        size: page.size,
+        source_asset: null,
+        layer_count: 0,
+      })),
+    )
+    vi.spyOn(canvasRuntime, 'showCanvasPage').mockReturnValue(false)
+    const selectPage = vi.spyOn(commands, 'selectPage').mockImplementation(async (id) => ({
+      project: {
+        name: 'Book',
+        revision: 1,
+        active_page: id,
+        can_undo: true,
+        can_redo: false,
+      },
+      page: pages.find((page) => page.id === id)!,
+    }))
+    render(<PageRail />)
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(selectPage).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Filter pages' }), {
+      key: 'ArrowRight',
+    })
+    expect(selectPage).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-2'))
+    await waitFor(() =>
+      expect(queryClient.getQueryData<ProjectInfo>(projectKey)?.active_page).toBe('page-2'),
+    )
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-3'))
+    await waitFor(() =>
+      expect(queryClient.getQueryData<ProjectInfo>(projectKey)?.active_page).toBe('page-3'),
+    )
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(selectPage).toHaveBeenCalledTimes(2)
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-2'))
+  })
+
   it('keeps rapid page switches on the latest native selection', async () => {
     installProject()
     const pages = [

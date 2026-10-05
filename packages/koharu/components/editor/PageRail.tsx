@@ -11,7 +11,7 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ResourceMonitor } from '@/components/editor/ResourceMonitor'
@@ -78,6 +78,7 @@ export function PageRail() {
   const anchor = useRef<number | null>(null)
   const selectionRequest = useRef(0)
   const intentPrefetch = useRef<IntentPrefetchState | null>(null)
+  const keyboardPageIndex = useRef<number | null>(null)
   const [dragged, setDragged] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [renaming, setRenaming] = useState<PageSummary | null>(null)
@@ -112,57 +113,99 @@ export function PageRail() {
     [],
   )
 
-  const select = (index: number, additive: boolean, range: boolean) => {
-    const page = pages[index]
-    if (!page) return
-    let next: string[]
-    if (range && anchor.current !== null) {
-      const start = Math.min(anchor.current, index)
-      const end = Math.max(anchor.current, index)
-      const rangeIds = pages.slice(start, end + 1).map((item) => item.id)
-      next = additive ? [...new Set([...selected, ...rangeIds])] : rangeIds
-    } else if (additive) {
-      next = selected.includes(page.id)
-        ? selected.filter((id) => id !== page.id)
-        : [...selected, page.id]
-      anchor.current = index
-    } else {
-      next = [page.id]
-      anchor.current = index
-    }
-    const previousProject = queryClient.getQueryData<ProjectInfo | null>(projectKey)
-    const previousPage = queryClient.getQueryData<Page | null>(pageKey)
-    const prepared = queryClient.getQueryData<CanvasPagePreparation>(preparedPageKey(page.id))
-    const activated = showCanvasPage(page.id, previousProject?.revision ?? null)
-    const request = ++selectionRequest.current
-    const synchronize = () => {
-      if (selectionRequest.current !== request) return
-      if (activated && previousProject && prepared?.revision === previousProject.revision) {
-        queryClient.setQueryData(projectKey, { ...previousProject, active_page: page.id })
-        queryClient.setQueryData(pageKey, prepared.page)
+  const select = useCallback(
+    (index: number, additive: boolean, range: boolean) => {
+      const page = pages[index]
+      if (!page) return
+      let next: string[]
+      if (range && anchor.current !== null) {
+        const start = Math.min(anchor.current, index)
+        const end = Math.max(anchor.current, index)
+        const rangeIds = pages.slice(start, end + 1).map((item) => item.id)
+        next = additive ? [...new Set([...selected, ...rangeIds])] : rangeIds
+      } else if (additive) {
+        next = selected.includes(page.id)
+          ? selected.filter((id) => id !== page.id)
+          : [...selected, page.id]
+        anchor.current = index
+      } else {
+        next = [page.id]
+        anchor.current = index
       }
-      selectPages(next)
-      selectLayers([])
-      void call(commands.selectPage, page.id)
-        .then((selection) => {
-          if (selectionRequest.current !== request) return
-          queryClient.setQueryData(projectKey, selection.project)
-          queryClient.setQueryData(pageKey, selection.page)
-        })
-        .catch(() => {
-          if (selectionRequest.current !== request) return
-          if (queryClient.getQueryData<ProjectInfo | null>(projectKey)?.active_page === page.id) {
-            queryClient.setQueryData(projectKey, previousProject)
-            queryClient.setQueryData(pageKey, previousPage)
-          }
-        })
+      const previousProject = queryClient.getQueryData<ProjectInfo | null>(projectKey)
+      const previousPage = queryClient.getQueryData<Page | null>(pageKey)
+      const prepared = queryClient.getQueryData<CanvasPagePreparation>(preparedPageKey(page.id))
+      const activated = showCanvasPage(page.id, previousProject?.revision ?? null)
+      const request = ++selectionRequest.current
+      const synchronize = () => {
+        if (selectionRequest.current !== request) return
+        if (activated && previousProject && prepared?.revision === previousProject.revision) {
+          queryClient.setQueryData(projectKey, { ...previousProject, active_page: page.id })
+          queryClient.setQueryData(pageKey, prepared.page)
+        }
+        selectPages(next)
+        selectLayers([])
+        void call(commands.selectPage, page.id)
+          .then((selection) => {
+            if (selectionRequest.current !== request) return
+            queryClient.setQueryData(projectKey, selection.project)
+            queryClient.setQueryData(pageKey, selection.page)
+          })
+          .catch(() => {
+            if (selectionRequest.current !== request) return
+            if (queryClient.getQueryData<ProjectInfo | null>(projectKey)?.active_page === page.id) {
+              queryClient.setQueryData(projectKey, previousProject)
+              queryClient.setQueryData(pageKey, previousPage)
+            }
+          })
+      }
+      if (activated) {
+        requestAnimationFrame(() => window.setTimeout(synchronize, 0))
+      } else {
+        synchronize()
+      }
+    },
+    [pages, selected, selectLayers, selectPages],
+  )
+
+  useEffect(() => {
+    keyboardPageIndex.current = pages.findIndex((page) => page.id === active)
+  }, [active, pages])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') ||
+        event.defaultPrevented ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      )
+        return
+
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.closest(
+            'input, textarea, select, [role="dialog"], [role="menu"], [role="listbox"], [role="slider"]',
+          ))
+      )
+        return
+
+      const current = keyboardPageIndex.current ?? pages.findIndex((page) => page.id === active)
+      const next = current + (event.key === 'ArrowLeft' ? -1 : 1)
+      if (current < 0 || !pages[next]) return
+
+      event.preventDefault()
+      keyboardPageIndex.current = next
+      select(next, false, false)
     }
-    if (activated) {
-      requestAnimationFrame(() => window.setTimeout(synchronize, 0))
-    } else {
-      synchronize()
-    }
-  }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [active, pages, select])
 
   const prefetchOnIntent = (page: string) => {
     const project = queryClient.getQueryData<ProjectInfo | null>(projectKey)
