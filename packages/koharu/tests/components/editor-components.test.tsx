@@ -818,6 +818,39 @@ describe('greenfield editor', () => {
     expect(useKoharuStore.getState().brush.diameter).toBe(49)
   })
 
+  it('selects the cleanup layer when choosing the brush or eraser tool', async () => {
+    const user = userEvent.setup()
+    installProject()
+    queryClient.setQueryData(pageKey, (page: { layers: Layer[] }) => ({
+      ...page,
+      layers: [
+        ...page.layers,
+        {
+          type: 'raster',
+          id: 'cleanup',
+          parent: 'page',
+          visibility: { visible: true, opacity: 1 },
+          image: null,
+          name: 'Cleanup',
+          kind: 'cleanup',
+        },
+      ],
+    }))
+    render(
+      <TooltipProvider>
+        <ToolBar />
+      </TooltipProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Eraser' }))
+    expect(useKoharuStore.getState().tool).toBe('eraser')
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['cleanup'])
+
+    await user.click(screen.getByRole('button', { name: 'Brush' }))
+    expect(useKoharuStore.getState().tool).toBe('draw')
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['cleanup'])
+  })
+
   it('uses the border color well to enable and disable the border', async () => {
     const user = userEvent.setup()
     installProject()

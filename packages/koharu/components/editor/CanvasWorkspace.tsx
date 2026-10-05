@@ -123,6 +123,9 @@ export function CanvasWorkspace() {
     selected.length === 1
       ? page?.layers.find((layer) => layer.id === selected[0] && layer.type === 'raster')
       : undefined
+  const cleanupLayer = page?.layers.find(
+    (layer) => layer.type === 'raster' && layer.kind === 'cleanup',
+  )
 
   const enqueue = useCallback(<Result,>(operation: () => Promise<Result>): Promise<Result> => {
     const pending = commandQueue.current.then(operation)
@@ -365,7 +368,7 @@ export function CanvasWorkspace() {
       const next = (
         ['select', 'text', 'draw', 'eraser', 'color_picker', 'remove', 'pan'] as const
       ).find((action) => state.shortcuts[action] === event.key.toLowerCase())
-      if (next) setTool(next)
+      if (next) setTool(next, cleanupLayer?.id)
     }
 
     const up = (event: KeyboardEvent) => {
@@ -385,7 +388,15 @@ export function CanvasWorkspace() {
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [cancelGesture, colorSampling, page, requestCanvasFit, selectLayers, setTool])
+  }, [
+    cancelGesture,
+    cleanupLayer?.id,
+    colorSampling,
+    page,
+    requestCanvasFit,
+    selectLayers,
+    setTool,
+  ])
 
   const clientPagePoint = (clientX: number, clientY: number) =>
     pagePoint(
