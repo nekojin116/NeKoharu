@@ -247,6 +247,7 @@
     "discord": "Discord",
     "edit": "편집",
     "export": "프로젝트 내보내기",
+    "exportSelectedPages": "선택한 페이지 내보내기",
     "file": "파일",
     "fit": "창에 맞춤",
     "github": "GitHub",

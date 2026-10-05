@@ -247,6 +247,7 @@
     "discord": "Discord",
     "edit": "编辑",
     "export": "导出项目",
+    "exportSelectedPages": "导出所选页面",
     "file": "文件",
     "fit": "适应窗口",
     "github": "GitHub",

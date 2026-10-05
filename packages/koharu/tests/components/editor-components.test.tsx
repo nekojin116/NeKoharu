@@ -345,7 +345,7 @@ describe('greenfield editor', () => {
       installProject()
       let finishExport: (() => void) | undefined
       const exportProject = vi.spyOn(commands, 'export').mockImplementation(
-        () =>
+        (_format, _pages) =>
           new Promise<null>((resolve) => {
             finishExport = () => resolve(null)
           }),
@@ -363,7 +363,7 @@ describe('greenfield editor', () => {
       fireEvent.click(await screen.findByRole('menuitem', { name: `${format.toUpperCase()}…` }))
 
       expect(await screen.findByRole('status')).toHaveTextContent('Export Project')
-      expect(exportProject).toHaveBeenCalledExactlyOnceWith(format)
+      expect(exportProject).toHaveBeenCalledExactlyOnceWith(format, null)
       await user.click(screen.getByRole('menuitem', { name: 'File' }))
       expect(await screen.findByRole('menuitem', { name: 'Export Project' })).toHaveAttribute(
         'aria-disabled',
@@ -380,6 +380,23 @@ describe('greenfield editor', () => {
       )
     },
   )
+
+  it('offers selected-page export formats when pages are selected', async () => {
+    const user = userEvent.setup()
+    installProject()
+    useKoharuStore.setState({ selectedPages: ['page'] })
+    render(<TitleBar />)
+
+    await user.click(screen.getByRole('menuitem', { name: 'File' }))
+    await user.hover(await screen.findByRole('menuitem', { name: 'Export Project' }))
+    const selectedExport = await screen.findByRole('menuitem', {
+      name: 'Export Selected Pages — PNG…',
+    })
+    expect(selectedExport).not.toHaveAttribute('aria-disabled', 'true')
+
+    act(() => useKoharuStore.setState({ selectedPages: [] }))
+    expect(selectedExport).toHaveAttribute('aria-disabled', 'true')
+  })
 
   it.each([
     { command: 'import', menu: 'Import Pages', choice: 'Files…', pending: 'Importing pages…' },

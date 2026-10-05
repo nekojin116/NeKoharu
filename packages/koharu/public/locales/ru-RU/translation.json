@@ -247,6 +247,7 @@
     "discord": "Discord",
     "edit": "Правка",
     "export": "Экспорт проекта",
+    "exportSelectedPages": "Экспорт выбранных страниц",
     "file": "Файл",
     "fit": "Вписать в окно",
     "github": "GitHub",

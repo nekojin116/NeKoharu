@@ -247,6 +247,7 @@
     "discord": "Discord",
     "edit": "編集",
     "export": "プロジェクトを書き出す",
+    "exportSelectedPages": "選択したページを書き出す",
     "file": "ファイル",
     "fit": "ウィンドウに合わせる",
     "github": "GitHub",
