@@ -83,6 +83,8 @@ export function PageRail() {
   const intentPrefetch = useRef<IntentPrefetchState | null>(null)
   const keyboardPageIndex = useRef<number | null>(null)
   const draggedPage = useRef<string | null>(null)
+  const dropTargetRef = useRef<{ page: string; position: DropPosition } | null>(null)
+  const dropHandled = useRef(false)
   const [dragged, setDragged] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ page: string; position: DropPosition } | null>(
     null,
@@ -284,6 +286,30 @@ export function PageRail() {
       .then(() => refresh(projectKey, pagesKey))
       .catch(() => undefined)
 
+  const handleMovePage = useCallback(
+    (movingId: string | null, targetId: string | null, position: DropPosition | null) => {
+      if (!movingId || !targetId || !position || movingId === targetId) return
+      const movingIndex = pages.findIndex((item) => item.id === movingId)
+      const targetIndexInPages = pages.findIndex((item) => item.id === targetId)
+      if (movingIndex < 0 || targetIndexInPages < 0) return
+
+      const targetIndex = targetIndexInPages - (movingIndex < targetIndexInPages ? 1 : 0)
+      const destination = targetIndex + (position === 'after' ? 1 : 0)
+      void call(commands.movePage, movingId, destination)
+        .finally(() => refresh(projectKey, pagesKey))
+        .catch(() => undefined)
+    },
+    [pages],
+  )
+
+  const cleanupDrag = useCallback(() => {
+    draggedPage.current = null
+    dropTargetRef.current = null
+    dropHandled.current = false
+    setDragged(null)
+    setDropTarget(null)
+  }, [])
+
   return (
     <>
       <aside className='flex h-full min-h-0 flex-col bg-[var(--surface-sidebar)]'>
@@ -342,7 +368,38 @@ export function PageRail() {
             viewportClassName='px-1.5 py-1.5'
             viewportRef={pageList}
           >
-            <div className='relative w-full' style={{ height: pageVirtualizer.getTotalSize() }}>
+            <div
+              className='relative w-full'
+              style={{ height: pageVirtualizer.getTotalSize() }}
+              onDragOver={(event) => {
+                if (draggedPage.current && event.target === event.currentTarget) {
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = 'move'
+                  const lastPage = visiblePages[visiblePages.length - 1]?.page
+                  if (lastPage && lastPage.id !== draggedPage.current) {
+                    dropTargetRef.current = { page: lastPage.id, position: 'after' }
+                    setDropTarget({ page: lastPage.id, position: 'after' })
+                  }
+                }
+              }}
+              onDrop={(event) => {
+                if (
+                  event.target === event.currentTarget &&
+                  !dropHandled.current &&
+                  dropTargetRef.current &&
+                  draggedPage.current
+                ) {
+                  event.preventDefault()
+                  dropHandled.current = true
+                  handleMovePage(
+                    draggedPage.current,
+                    dropTargetRef.current.page,
+                    dropTargetRef.current.position,
+                  )
+                  cleanupDrag()
+                }
+              }}
+            >
               {pageVirtualizer.getVirtualItems().map((virtualRow) => {
                 const item = visiblePages[virtualRow.index]
                 if (!item) return null
@@ -359,22 +416,32 @@ export function PageRail() {
                       active={active === page.id}
                       selected={selected.includes(page.id)}
                       dragged={dragged === page.id}
+                      isDragging={dragged !== null}
                       dropPosition={dropTarget?.page === page.id ? dropTarget.position : null}
                       onIntent={active === page.id ? undefined : () => prefetchOnIntent(page.id)}
                       onSelect={(additive, range) => select(index, additive, range)}
                       onDragStart={(event: DragEvent<HTMLElement>) => {
                         draggedPage.current = page.id
+                        dropTargetRef.current = null
+                        dropHandled.current = false
                         event.dataTransfer.effectAllowed = 'move'
                         event.dataTransfer.setData('text/plain', page.id)
                         setDragged(page.id)
                       }}
                       onDragEnd={() => {
-                        draggedPage.current = null
-                        setDragged(null)
-                        setDropTarget(null)
+                        if (!dropHandled.current && draggedPage.current && dropTargetRef.current) {
+                          dropHandled.current = true
+                          handleMovePage(
+                            draggedPage.current,
+                            dropTargetRef.current.page,
+                            dropTargetRef.current.position,
+                          )
+                        }
+                        cleanupDrag()
                       }}
                       onDragOver={(position) => {
                         if (draggedPage.current && draggedPage.current !== page.id) {
+                          dropTargetRef.current = { page: page.id, position }
                           setDropTarget({ page: page.id, position })
                         }
                       }}
@@ -383,19 +450,11 @@ export function PageRail() {
                       onToggleChapterStart={() => setChapterStart(page)}
                       onDrop={(position, dataTransfer) => {
                         const moving = draggedPage.current ?? dataTransfer.getData('text/plain')
-                        if (moving && moving !== page.id) {
-                          const movingIndex = pages.findIndex((item) => item.id === moving)
-                          if (movingIndex >= 0) {
-                            const targetIndex = index - (movingIndex < index ? 1 : 0)
-                            const destination = targetIndex + (position === 'after' ? 1 : 0)
-                            void call(commands.movePage, moving, destination)
-                              .finally(() => refresh(projectKey, pagesKey))
-                              .catch(() => undefined)
-                          }
+                        if (!dropHandled.current && moving && moving !== page.id) {
+                          dropHandled.current = true
+                          handleMovePage(moving, page.id, position)
                         }
-                        draggedPage.current = null
-                        setDragged(null)
-                        setDropTarget(null)
+                        cleanupDrag()
                       }}
                     />
                   </div>
@@ -527,6 +586,7 @@ function PageItem({
   selected,
   dragged,
   dropPosition,
+  isDragging,
   onIntent,
   onSelect,
   onDragStart,
@@ -542,6 +602,7 @@ function PageItem({
   selected: boolean
   dragged: boolean
   dropPosition: DropPosition | null
+  isDragging?: boolean
   onIntent?: () => void
   onSelect: (additive: boolean, range: boolean) => void
   onDragStart: (event: DragEvent<HTMLElement>) => void
@@ -582,6 +643,10 @@ function PageItem({
       onDoubleClick={onRename}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragEnter={(event) => {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
+      }}
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'
@@ -595,14 +660,19 @@ function PageItem({
         onDrop(position, event.dataTransfer)
       }}
     >
-      <div className='grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]'>
+      <div
+        className={cn(
+          'grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
+          isDragging && 'pointer-events-none',
+        )}
+      >
         {page.source_asset ? (
           <PageThumbnail page={page.id} asset={page.source_asset} label={page.label} />
         ) : (
           <span className='text-[9px] text-muted-foreground'>{t('navigator.noImage')}</span>
         )}
       </div>
-      <div className='min-w-0 py-0.5'>
+      <div className={cn('min-w-0 py-0.5', isDragging && 'pointer-events-none')}>
         <div className='flex items-start gap-1'>
           <span className='flex min-w-0 flex-1 items-center gap-1 truncate text-[10px] font-medium'>
             {page.chapter_start && (

@@ -565,6 +565,41 @@ describe('greenfield editor', () => {
     },
   )
 
+  it('uses the last hovered page when CEF omits the drop event', async () => {
+    installProject()
+    const pages: PageSummary[] = [
+      {
+        id: 'page',
+        label: 'Page 1',
+        size: { width: 1000, height: 1500 },
+        source_asset: 'source',
+        chapter_start: false,
+        layer_count: 1,
+      },
+      {
+        id: 'page-2',
+        label: 'Page 2',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    const movePage = vi.spyOn(commands, 'movePage').mockResolvedValue(null)
+    const dataTransfer = { effectAllowed: 'move', setData: vi.fn() }
+    render(<PageRail />)
+    const sourcePage = screen.getByText('Page 1').closest('article')!
+    const targetPage = screen.getByText('Page 2').closest('article')!
+
+    fireEvent.dragStart(sourcePage, { dataTransfer })
+    fireEvent.dragOver(targetPage, { clientY: 0, dataTransfer })
+    fireEvent.dragEnd(sourcePage, { dataTransfer })
+
+    await waitFor(() => expect(movePage).toHaveBeenCalledWith('page', 1))
+  })
+
   it('marks and unmarks chapter starts from the page actions menu', async () => {
     const user = userEvent.setup()
     installProject()
