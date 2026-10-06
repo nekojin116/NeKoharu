@@ -310,6 +310,33 @@ pub(crate) async fn move_layer(
 
 #[tracing::instrument(
     target = "koharu_metrics",
+    name = "text_layers_pasted",
+    skip_all,
+    fields(origin = "user", entity_count = layers.len()),
+)]
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn paste_text_layers(
+    layers: Vec<EntityId>,
+    page: EntityId,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<Vec<EntityId>, Error> {
+    let (commit, added) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let (commit, added) = project.paste_text_layers(page, layers).await?;
+        project.record_commit(&commit);
+        (commit, added)
+    };
+    let canvas = synchronize_canvas(&desktop, &commit, Some(page)).await?;
+    canvas_channel.channel.publish(canvas);
+    Ok(added)
+}
+
+#[tracing::instrument(
+    target = "koharu_metrics",
     name = "undo",
     skip_all,
     fields(origin = "user")

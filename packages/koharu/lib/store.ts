@@ -54,6 +54,7 @@ interface KoharuStore {
   fitCanvasRequest: number
   layerFrames: Record<EntityId, Frame>
   selectedLayers: EntityId[]
+  copiedTextLayers: EntityId[]
   selectedPages: EntityId[]
   tool: CanvasTool
   brush: CanvasBrush
@@ -68,7 +69,8 @@ interface KoharuStore {
   setProcessingStages: (stages: Stage[]) => void
   setSettingsOpen: (open: boolean) => void
   selectLayers: (layers: EntityId[]) => void
-  setTool: (tool: CanvasTool) => void
+  setCopiedTextLayers: (layers: EntityId[]) => void
+  setTool: (tool: CanvasTool, cleanupLayer?: EntityId) => void
   setBrush: (brush: CanvasBrush) => void
   setShortcut: (action: ShortcutAction, key: string) => void
   requestCanvasFit: () => void
@@ -102,6 +104,7 @@ export const useKoharuStore = create<KoharuStore>()((set) => ({
   fitCanvasRequest: 0,
   layerFrames: {},
   selectedLayers: [],
+  copiedTextLayers: [],
   selectedPages: [],
   tool: 'select',
   brush: { diameter: 48, color: '#FFFFFF' },
@@ -116,7 +119,14 @@ export const useKoharuStore = create<KoharuStore>()((set) => ({
   setProcessingStages: (processingStages) => set({ processingStages }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   selectLayers: (selectedLayers) => set({ selectedLayers: [...new Set(selectedLayers)] }),
-  setTool: (tool) => set({ tool }),
+  setCopiedTextLayers: (copiedTextLayers) => set({ copiedTextLayers: [...copiedTextLayers] }),
+  setTool: (tool, cleanupLayer) =>
+    set((state) => ({
+      tool,
+      ...(cleanupLayer && (tool === 'draw' || tool === 'eraser')
+        ? { selectedLayers: [cleanupLayer] }
+        : {}),
+    })),
   setBrush: (brush) => set({ brush }),
   setShortcut: (action, key) =>
     set((state) => ({

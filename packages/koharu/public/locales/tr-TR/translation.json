@@ -213,6 +213,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "Seçili metin katmanlarını kopyala",
     "delete": "{{name}} öğesini sil",
     "edit": "{{name}} öğesini düzenle",
     "empty": "Bu sayfada katman yok.",
@@ -234,6 +235,7 @@
     "moveUp": "{{name}} öğesini yukarı taşı",
     "opacityLabel": "{{name}} opaklığı",
     "originalArtwork": "Orijinal çizim",
+    "pasteCopied": "Kopyalanan metin katmanlarını yapıştır",
     "show": "{{name}} öğesini göster",
     "sourceLabel": "{{name}} kaynak metni",
     "textName": "Metin {{index}}",
@@ -247,6 +249,7 @@
     "discord": "Discord",
     "edit": "Düzenle",
     "export": "Projeyi Dışa Aktar",
+    "exportSelectedPages": "Seçili sayfaları dışa aktar",
     "file": "Dosya",
     "fit": "Pencereye Sığdır",
     "github": "GitHub",
@@ -433,10 +436,14 @@
     },
     "title": "Ayarlar",
     "translation": {
+      "batching": "İstek gruplama",
+      "combinePages": "Sayfaları tek istekte birleştir",
+      "combinePagesDescription": "Adların ve olay örgüsünün tutarlılığını korumak için seçilen sayfa sayısına kadar sayfayı birlikte çevirin. Çok sayfalı istekler yalnızca metin kullanır, sayfa görsellerini içermez.",
       "description": "Yapılandırılmış bir sağlayıcı modeli seçin ve ortak çeviri ile üretim seçeneklerini uygulayın.",
       "instructionsDescription": "Adlar, ton, terminoloji veya biçimlendirme yönergeleri.",
       "instructionsLabel": "Çeviri talimatları",
       "instructionsPlaceholder": "Proje genelinde isteğe bağlı yönergeler",
+      "maxPagesPerRequest": "İstek başına en fazla sayfa",
       "model": "Model",
       "modelDescription": "Sağlayıcı etiketleri her modelin nerede çalıştığını gösterir; bağlantılar ayrı yapılandırılır.",
       "modelQuantization": "Model niceleme",

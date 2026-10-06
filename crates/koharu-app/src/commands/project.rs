@@ -9,7 +9,8 @@ use koharu_scene::{
     Presents, RasterLayer as SceneRasterLayer, RasterLayerKind, Region as SceneRegion,
     RemovePolicy, Revision, Session, Snapshot, SourceText as SceneSourceText,
     TextGroup as SceneTextGroup, TextLayout as SceneTextLayout, TextLayoutKind,
-    Translation as SceneTranslation, Typography as SceneTypography, Visibility as SceneVisibility,
+    TextRole as SceneTextRole, Translation as SceneTranslation, Typography as SceneTypography,
+    Visibility as SceneVisibility,
 };
 use serde::Serialize;
 use specta::Type;
@@ -412,6 +413,80 @@ impl Project {
         frame: Frame,
     ) -> Result<(Commit, EntityId)> {
         self.add_text(page, frame, TextLayoutKind::Paragraph).await
+    }
+
+    pub(crate) async fn paste_text_layers(
+        &mut self,
+        page: EntityId,
+        layers: Vec<EntityId>,
+    ) -> Result<(Commit, Vec<EntityId>)> {
+        let snapshot = self.snapshot();
+        snapshot.page(page)?;
+        let mut seen = HashSet::new();
+        let layers = layers
+            .into_iter()
+            .filter(|layer| seen.insert(*layer))
+            .collect::<Vec<_>>();
+        if layers.is_empty() {
+            bail!("at least one text layer is required");
+        }
+
+        let mut added = Vec::with_capacity(layers.len());
+        let patch = snapshot.patch(|edit| {
+            for source_layer in &layers {
+                let source = snapshot.text_layer(*source_layer)?;
+                let content = source.content()?;
+                let mut layout = source.layout()?;
+                layout.origin = Origin::User;
+                let mut geometry = source.frame()?;
+                if let Some(geometry) = &mut geometry {
+                    geometry.origin = Origin::User;
+                }
+                let mut typography = source.typography()?;
+                if let Some(typography) = &mut typography {
+                    typography.origin = Origin::User;
+                }
+                let mut visibility = source.visibility()?.unwrap_or(SceneVisibility {
+                    origin: Origin::User,
+                    visible: true,
+                    opacity: 1.0,
+                });
+                visibility.origin = Origin::User;
+                let source_text = content.source()?;
+                let translation = content.translation()?;
+                let role = content.role()?;
+
+                let copied_content = edit.add_text_content(page, At::End)?;
+                if let Some(mut source_text) = source_text {
+                    source_text.text.origin = Origin::User;
+                    edit.set(copied_content, &source_text)?;
+                }
+                if let Some(mut translation) = translation {
+                    translation.text.origin = Origin::User;
+                    edit.set(copied_content, &translation)?;
+                }
+                if let Some(role) = role {
+                    edit.set(
+                        copied_content,
+                        &SceneTextRole {
+                            origin: Origin::User,
+                            role: role.role,
+                        },
+                    )?;
+                }
+                let copied_layer = edit.add_text_layer(page, At::End, copied_content, &layout)?;
+                if let Some(geometry) = geometry {
+                    edit.set(copied_layer, &geometry)?;
+                }
+                if let Some(typography) = typography {
+                    edit.set(copied_layer, &typography)?;
+                }
+                edit.set(copied_layer, &visibility)?;
+                added.push(copied_layer);
+            }
+            Ok(())
+        })?;
+        Ok((self.commit(patch).await?, added))
     }
 
     async fn add_text(
@@ -1364,6 +1439,88 @@ mod tests {
             Project::typography_view(typography).writing_mode,
             Some(WritingMode::Vertical)
         );
+    }
+
+    #[tokio::test]
+    async fn pastes_text_layer_content_and_placement_to_another_page() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let source_page = setup
+            .add_page(PageDraft::new("source", 100.0, 100.0), At::End)
+            .unwrap();
+        let target_page = setup
+            .add_page(PageDraft::new("target", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (_, source_layer) = project
+            .add_text_box(
+                source_page,
+                Frame {
+                    x: 12.0,
+                    y: 24.0,
+                    width: 32.0,
+                    height: 18.0,
+                    angle_degrees: 0.0,
+                },
+            )
+            .await
+            .unwrap();
+        project
+            .set_source_text(source_layer, "BOOM".to_owned())
+            .await
+            .unwrap();
+        project
+            .set_translation(source_layer, Some("Bang!".to_owned()))
+            .await
+            .unwrap();
+
+        let (_, pasted) = project
+            .paste_text_layers(target_page, vec![source_layer])
+            .await
+            .unwrap();
+        let target = Project::page(&project.snapshot(), target_page).unwrap();
+        let Some(Layer::Text {
+            id,
+            geometry,
+            content,
+            ..
+        }) = target
+            .layers
+            .iter()
+            .find(|layer| matches!(layer, Layer::Text { .. }))
+        else {
+            panic!("expected a pasted text layer");
+        };
+        assert_eq!(pasted, vec![*id]);
+        assert_ne!(*id, source_layer);
+        assert_eq!(
+            content.source.as_ref().map(|source| source.text.as_str()),
+            Some("BOOM")
+        );
+        assert_eq!(
+            content
+                .translation
+                .as_ref()
+                .map(|translation| translation.text.as_str()),
+            Some("Bang!")
+        );
+        assert_eq!(
+            geometry.as_ref().map(|geometry| geometry.points[0].x),
+            Some(12.0)
+        );
+        assert_eq!(
+            geometry.as_ref().map(|geometry| geometry.points[0].y),
+            Some(24.0)
+        );
+        assert!(matches!(
+            target.layers.first(),
+            Some(Layer::Group {
+                role: Some(GroupRole::Text),
+                ..
+            })
+        ));
     }
 
     #[tokio::test]

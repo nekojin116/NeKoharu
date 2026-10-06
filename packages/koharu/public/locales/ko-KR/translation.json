@@ -213,6 +213,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "선택한 텍스트 레이어 복사",
     "delete": "{{name}} 삭제",
     "edit": "{{name}} 편집",
     "empty": "이 페이지에는 레이어가 없습니다.",
@@ -234,6 +235,7 @@
     "moveUp": "{{name}} 위로 이동",
     "opacityLabel": "{{name}} 불투명도",
     "originalArtwork": "원본 아트워크",
+    "pasteCopied": "복사한 텍스트 레이어 붙여넣기",
     "show": "{{name}} 표시",
     "sourceLabel": "{{name}} 원문",
     "textName": "텍스트 {{index}}",
@@ -247,6 +249,7 @@
     "discord": "Discord",
     "edit": "편집",
     "export": "프로젝트 내보내기",
+    "exportSelectedPages": "선택한 페이지 내보내기",
     "file": "파일",
     "fit": "창에 맞춤",
     "github": "GitHub",
@@ -433,10 +436,14 @@
     },
     "title": "설정",
     "translation": {
+      "batching": "요청 묶음",
+      "combinePages": "페이지를 하나의 요청으로 묶기",
+      "combinePagesDescription": "선택한 페이지 수만큼 함께 번역하여 이름과 줄거리의 일관성을 유지합니다. 여러 페이지 요청에는 텍스트만 사용되며 페이지 이미지는 포함되지 않습니다.",
       "description": "설정된 제공자의 모델을 선택하고 공통 번역 및 생성 옵션을 적용합니다.",
       "instructionsDescription": "이름, 어조, 용어 또는 서식 지침입니다.",
       "instructionsLabel": "번역 지침",
       "instructionsPlaceholder": "프로젝트 전체에 적용할 선택적 지침",
+      "maxPagesPerRequest": "요청당 최대 페이지 수",
       "model": "모델",
       "modelDescription": "제공자 레이블은 각 모델의 실행 위치를 나타내며 연결은 별도로 설정합니다.",
       "modelQuantization": "모델 양자화",
