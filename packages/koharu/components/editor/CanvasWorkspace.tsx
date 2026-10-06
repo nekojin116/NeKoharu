@@ -20,6 +20,7 @@ import {
   selectableLayer,
   translateFrames,
 } from '@/lib/geometry'
+import { copySelectedTextLayers, pasteCopiedTextLayers } from '@/lib/layerClipboard'
 import {
   pageKey,
   pagesKey,
@@ -333,6 +334,17 @@ export function CanvasWorkspace() {
         return
       }
       const command = event.ctrlKey || event.metaKey
+      if (command && event.key.toLowerCase() === 'c') {
+        if (copySelectedTextLayers(page ?? undefined)) event.preventDefault()
+        return
+      }
+      if (command && event.key.toLowerCase() === 'v') {
+        if (useKoharuStore.getState().copiedTextLayers.length > 0 && page) {
+          event.preventDefault()
+          void pasteCopiedTextLayers(page).catch(() => undefined)
+        }
+        return
+      }
       if (command && event.key.toLowerCase() === 'z') {
         event.preventDefault()
         void call(event.shiftKey ? commands.redo : commands.undo)

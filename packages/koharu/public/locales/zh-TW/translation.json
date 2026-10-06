@@ -213,6 +213,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "複製選取的文字圖層",
     "delete": "刪除 {{name}}",
     "edit": "編輯 {{name}}",
     "empty": "此頁面沒有圖層。",
@@ -234,6 +235,7 @@
     "moveUp": "上移 {{name}}",
     "opacityLabel": "{{name}} 不透明度",
     "originalArtwork": "原始圖稿",
+    "pasteCopied": "貼上已複製的文字圖層",
     "show": "顯示 {{name}}",
     "sourceLabel": "{{name}} 的原文",
     "textName": "文字 {{index}}",

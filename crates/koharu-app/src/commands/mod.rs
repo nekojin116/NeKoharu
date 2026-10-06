@@ -84,6 +84,7 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             editing::set_visibility,
             editing::delete_layers,
             editing::move_layer,
+            editing::paste_text_layers,
             editing::undo,
             editing::redo,
             processing::process,

@@ -213,6 +213,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "선택한 텍스트 레이어 복사",
     "delete": "{{name}} 삭제",
     "edit": "{{name}} 편집",
     "empty": "이 페이지에는 레이어가 없습니다.",
@@ -234,6 +235,7 @@
     "moveUp": "{{name}} 위로 이동",
     "opacityLabel": "{{name}} 불투명도",
     "originalArtwork": "원본 아트워크",
+    "pasteCopied": "복사한 텍스트 레이어 붙여넣기",
     "show": "{{name}} 표시",
     "sourceLabel": "{{name}} 원문",
     "textName": "텍스트 {{index}}",

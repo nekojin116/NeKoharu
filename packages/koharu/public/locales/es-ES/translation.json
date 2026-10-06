@@ -213,6 +213,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "Copiar capas de texto seleccionadas",
     "delete": "Eliminar {{name}}",
     "edit": "Editar {{name}}",
     "empty": "No hay capas en esta página.",
@@ -234,6 +235,7 @@
     "moveUp": "Mover {{name}} arriba",
     "opacityLabel": "Opacidad de {{name}}",
     "originalArtwork": "Ilustración original",
+    "pasteCopied": "Pegar capas de texto copiadas",
     "show": "Mostrar {{name}}",
     "sourceLabel": "Texto original de {{name}}",
     "textName": "Texto {{index}}",

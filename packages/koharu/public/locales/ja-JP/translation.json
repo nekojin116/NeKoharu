@@ -213,6 +213,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "選択したテキストレイヤーをコピー",
     "delete": "{{name}}を削除",
     "edit": "{{name}}を編集",
     "empty": "このページにはレイヤーがありません。",
@@ -234,6 +235,7 @@
     "moveUp": "{{name}}を上へ移動",
     "opacityLabel": "{{name}}の不透明度",
     "originalArtwork": "元のアートワーク",
+    "pasteCopied": "コピーしたテキストレイヤーを貼り付け",
     "show": "{{name}}を表示",
     "sourceLabel": "{{name}}の原文",
     "textName": "テキスト {{index}}",

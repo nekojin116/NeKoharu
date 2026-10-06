@@ -6,3 +6,4 @@
 - Automatically select the cleanup layer when switching to the brush or eraser tool.
 - Export selected pages as PNG, PSD, or CBZ from the project export menu.
 - Optionally translate multiple pages in one request, with a configurable page limit for cross-page name and plot consistency.
+- Copy and paste selected text layers between pages, preserving their text, placement, and formatting.
