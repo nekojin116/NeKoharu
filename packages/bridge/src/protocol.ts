@@ -503,6 +503,8 @@ export type TranslationConfig = {
 	generation: GenerationConfig,
 	target_language: string,
 	instructions: string | null,
+	combine_pages?: boolean,
+	max_pages_per_request?: number,
 };
 
 export type TypesettingConfig = {

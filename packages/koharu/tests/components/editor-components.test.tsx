@@ -150,6 +150,8 @@ const preferences: Preferences = {
       generation: { vision: true, reasoning: false },
       target_language: 'en-US',
       instructions: null,
+      combine_pages: false,
+      max_pages_per_request: 5,
     },
     inpainting: { model: 'lama' },
     processor: {},
@@ -1694,6 +1696,31 @@ describe('greenfield editor', () => {
           translation: expect.objectContaining({
             generation: expect.objectContaining({ vision: false }),
           }),
+        }),
+        preferences.providers,
+        preferences.typesetting,
+      ),
+    )
+    const combinePages = screen.getByRole('switch', { name: 'Combine pages in one request' })
+    await user.click(combinePages)
+    expect(combinePages).toBeChecked()
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          translation: expect.objectContaining({ combine_pages: true }),
+        }),
+        preferences.providers,
+        preferences.typesetting,
+      ),
+    )
+    save.mockClear()
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Maximum pages per request' }), {
+      target: { value: '3' },
+    })
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          translation: expect.objectContaining({ max_pages_per_request: 3 }),
         }),
         preferences.providers,
         preferences.typesetting,
