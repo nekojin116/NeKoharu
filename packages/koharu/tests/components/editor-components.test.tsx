@@ -213,6 +213,7 @@ function installProject() {
       label: 'Page 1',
       size: { width: 1000, height: 1500 },
       source_asset: 'source',
+      chapter_start: false,
       layer_count: 1,
     },
   ])
@@ -490,6 +491,87 @@ describe('greenfield editor', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('3 selected')
   })
 
+  it('reorders pages by dragging a page in the rail', async () => {
+    installProject()
+    const pages: PageSummary[] = [
+      {
+        id: 'page',
+        label: 'Page 1',
+        size: { width: 1000, height: 1500 },
+        source_asset: 'source',
+        chapter_start: false,
+        layer_count: 1,
+      },
+      {
+        id: 'page-2',
+        label: 'Page 2',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    const movePage = vi.spyOn(commands, 'movePage').mockResolvedValue(null)
+    const setData = vi.fn()
+    const dataTransfer = { effectAllowed: 'all', setData }
+    render(<PageRail />)
+
+    const first = screen.getByText('Page 1').closest('article')!
+    const second = screen.getByText('Page 2').closest('article')!
+    fireEvent.dragStart(first, { dataTransfer })
+    fireEvent.dragOver(second, { dataTransfer })
+    fireEvent.drop(second, { dataTransfer })
+
+    expect(setData).toHaveBeenCalledWith('text/plain', 'page')
+    await waitFor(() => expect(movePage).toHaveBeenCalledWith('page', 1))
+  })
+
+  it('marks and unmarks chapter starts from the page actions menu', async () => {
+    const user = userEvent.setup()
+    installProject()
+    let chapterStart = false
+    const page: PageSummary = {
+      id: 'page',
+      label: 'Page 1',
+      size: { width: 1000, height: 1500 },
+      source_asset: 'source',
+      chapter_start: false,
+      layer_count: 1,
+    }
+    const getPages = vi
+      .spyOn(commands, 'getPages')
+      .mockImplementation(async () => [{ ...page, chapter_start: chapterStart }])
+    const setChapterStart = vi
+      .spyOn(commands, 'setPageChapterStart')
+      .mockImplementation(async (_id, next) => {
+        chapterStart = next
+        return null
+      })
+    queryClient.setQueryData(pagesKey, [page])
+    render(<PageRail />)
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 1' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Mark as chapter start' }))
+    await waitFor(() => expect(setChapterStart).toHaveBeenLastCalledWith('page', true))
+    expect(await screen.findByRole('img', { name: 'Chapter start' })).toBeInTheDocument()
+    expect(screen.getByText('Page 1').closest('article')).toHaveAttribute(
+      'data-chapter-start',
+      'true',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 1' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Remove chapter start marker' }))
+    await waitFor(() => expect(setChapterStart).toHaveBeenLastCalledWith('page', false))
+    await waitFor(() => expect(getPages).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('img', { name: 'Chapter start' })).not.toBeInTheDocument()
+    expect(screen.getByText('Page 1').closest('article')).toHaveAttribute(
+      'data-chapter-start',
+      'false',
+    )
+  })
+
   it('loads page thumbnails into the filmstrip', async () => {
     installProject()
     const thumbnail = vi.spyOn(commands, 'getThumbnail').mockResolvedValue([1])
@@ -657,6 +739,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       })),
     )
@@ -716,6 +799,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       })),
     )
@@ -786,6 +870,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       })),
     )
@@ -850,6 +935,7 @@ describe('greenfield editor', () => {
         label: 'Page 2',
         size: { width: 1000, height: 1500 },
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       },
     ])
@@ -888,6 +974,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       },
     ])
@@ -921,6 +1008,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       },
     ])
@@ -2156,6 +2244,7 @@ describe('greenfield editor', () => {
         label: 'cover.png',
         size: { width: 1000, height: 1500 },
         source_asset: 'source',
+        chapter_start: false,
         layer_count: 1,
       },
     ])

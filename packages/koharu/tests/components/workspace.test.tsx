@@ -144,6 +144,7 @@ describe('canvas interaction adapter', () => {
         label: 'Page',
         size: { width: 1000, height: 1000 },
         source_asset: null,
+        chapter_start: false,
         layer_count: 1,
       },
       {
@@ -151,6 +152,7 @@ describe('canvas interaction adapter', () => {
         label: 'Next',
         size: { width: 1000, height: 1000 },
         source_asset: null,
+        chapter_start: false,
         layer_count: 1,
       },
     ])

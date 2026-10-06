@@ -53,6 +53,7 @@ pub struct PageSummary {
     pub label: String,
     pub size: PageSize,
     pub source_asset: Option<String>,
+    pub chapter_start: bool,
     #[specta(type = f64)]
     pub layer_count: usize,
 }
@@ -346,6 +347,7 @@ impl Project {
                         height: value.height,
                     },
                     source_asset,
+                    chapter_start: value.chapter_start,
                     layer_count,
                 })
             })
@@ -356,7 +358,28 @@ impl Project {
         let snapshot = self.snapshot();
         let current = snapshot.page(page)?.page()?;
         let patch = snapshot.patch(|edit| {
-            edit.set_page(page, PageDraft::new(label, current.width, current.height))
+            edit.set_page(
+                page,
+                PageDraft::new(label, current.width, current.height)
+                    .with_chapter_start(current.chapter_start),
+            )
+        })?;
+        self.commit(patch).await
+    }
+
+    pub(crate) async fn set_page_chapter_start(
+        &mut self,
+        page: EntityId,
+        chapter_start: bool,
+    ) -> Result<Commit> {
+        let snapshot = self.snapshot();
+        let current = snapshot.page(page)?.page()?;
+        let patch = snapshot.patch(|edit| {
+            edit.set_page(
+                page,
+                PageDraft::new(current.label, current.width, current.height)
+                    .with_chapter_start(chapter_start),
+            )
         })?;
         self.commit(patch).await
     }
@@ -1439,6 +1462,34 @@ mod tests {
             Project::typography_view(typography).writing_mode,
             Some(WritingMode::Vertical)
         );
+    }
+
+    #[tokio::test]
+    async fn chapter_start_markers_are_projected_and_survive_page_renames() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let page = setup
+            .add_page(PageDraft::new("chapter start", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        project.set_page_chapter_start(page, true).await.unwrap();
+        assert!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .first()
+                .unwrap()
+                .chapter_start
+        );
+
+        project
+            .rename_page(page, "renamed chapter".to_owned())
+            .await
+            .unwrap();
+        let summary = Project::pages(&project.snapshot()).unwrap();
+        assert_eq!(summary[0].label, "renamed chapter");
+        assert!(summary[0].chapter_start);
     }
 
     #[tokio::test]

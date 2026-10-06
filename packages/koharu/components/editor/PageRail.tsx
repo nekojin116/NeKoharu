@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
 import {
   FilePlus2,
+  Flag,
   FolderOpen,
   LoaderCircle,
   MoreHorizontal,
@@ -11,7 +12,7 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ResourceMonitor } from '@/components/editor/ResourceMonitor'
@@ -79,7 +80,9 @@ export function PageRail() {
   const selectionRequest = useRef(0)
   const intentPrefetch = useRef<IntentPrefetchState | null>(null)
   const keyboardPageIndex = useRef<number | null>(null)
+  const draggedPage = useRef<string | null>(null)
   const [dragged, setDragged] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [renaming, setRenaming] = useState<PageSummary | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -272,6 +275,11 @@ export function PageRail() {
       .finally(closeRename)
   }
 
+  const setChapterStart = (page: PageSummary) =>
+    void call(commands.setPageChapterStart, page.id, !page.chapter_start)
+      .then(() => refresh(projectKey, pagesKey))
+      .catch(() => undefined)
+
   return (
     <>
       <aside className='flex h-full min-h-0 flex-col bg-[var(--surface-sidebar)]'>
@@ -347,19 +355,38 @@ export function PageRail() {
                       active={active === page.id}
                       selected={selected.includes(page.id)}
                       dragged={dragged === page.id}
+                      dropTarget={dropTarget === page.id}
                       onIntent={active === page.id ? undefined : () => prefetchOnIntent(page.id)}
                       onSelect={(additive, range) => select(index, additive, range)}
-                      onDragStart={() => setDragged(page.id)}
-                      onDragEnd={() => setDragged(null)}
+                      onDragStart={(event: DragEvent<HTMLElement>) => {
+                        draggedPage.current = page.id
+                        event.dataTransfer.effectAllowed = 'move'
+                        event.dataTransfer.setData('text/plain', page.id)
+                        setDragged(page.id)
+                      }}
+                      onDragEnd={() => {
+                        draggedPage.current = null
+                        setDragged(null)
+                        setDropTarget(null)
+                      }}
+                      onDragOver={() => {
+                        if (draggedPage.current && draggedPage.current !== page.id) {
+                          setDropTarget(page.id)
+                        }
+                      }}
                       onRename={() => openRename(page)}
                       onDelete={() => deletePage(page.id)}
+                      onToggleChapterStart={() => setChapterStart(page)}
                       onDrop={() => {
-                        if (dragged && dragged !== page.id) {
-                          void call(commands.movePage, dragged, index)
+                        const moving = draggedPage.current
+                        if (moving && moving !== page.id) {
+                          void call(commands.movePage, moving, index)
                             .then(() => refresh(projectKey, pagesKey))
                             .catch(() => undefined)
                         }
+                        draggedPage.current = null
                         setDragged(null)
+                        setDropTarget(null)
                       }}
                     />
                   </div>
@@ -490,24 +517,30 @@ function PageItem({
   active,
   selected,
   dragged,
+  dropTarget,
   onIntent,
   onSelect,
   onDragStart,
   onDragEnd,
+  onDragOver,
   onRename,
   onDelete,
+  onToggleChapterStart,
   onDrop,
 }: {
   page: PageSummary
   active: boolean
   selected: boolean
   dragged: boolean
+  dropTarget: boolean
   onIntent?: () => void
   onSelect: (additive: boolean, range: boolean) => void
-  onDragStart: () => void
+  onDragStart: (event: DragEvent<HTMLElement>) => void
   onDragEnd: () => void
+  onDragOver: () => void
   onRename: () => void
   onDelete: () => void
+  onToggleChapterStart: () => void
   onDrop: () => void
 }) {
   const { t } = useTranslation()
@@ -517,14 +550,16 @@ function PageItem({
       draggable
       data-active={active}
       data-selected={selected}
+      data-chapter-start={page.chapter_start}
       className={cn(
-        'group grid cursor-default grid-cols-[48px_minmax(0,1fr)] gap-2.5 rounded-xl p-1.5 transition-colors select-none',
+        'group grid cursor-grab grid-cols-[48px_minmax(0,1fr)] gap-2.5 rounded-xl p-1.5 transition-colors select-none active:cursor-grabbing',
         active
           ? 'bg-primary/[0.09] hover:bg-primary/[0.09]'
           : selected
             ? 'bg-foreground/[0.06] hover:bg-foreground/[0.08]'
             : 'hover:bg-foreground/[0.045]',
         dragged && 'opacity-50',
+        dropTarget && 'ring-1 ring-primary',
       )}
       onPointerEnter={onIntent}
       onFocus={onIntent}
@@ -535,7 +570,10 @@ function PageItem({
       onDoubleClick={onRename}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault()
+        onDragOver()
+      }}
       onDrop={(event) => {
         event.preventDefault()
         onDrop()
@@ -550,7 +588,19 @@ function PageItem({
       </div>
       <div className='min-w-0 py-0.5'>
         <div className='flex items-start gap-1'>
-          <span className='min-w-0 flex-1 truncate text-[10px] font-medium'>{page.label}</span>
+          <span className='flex min-w-0 flex-1 items-center gap-1 truncate text-[10px] font-medium'>
+            {page.chapter_start && (
+              <span
+                role='img'
+                aria-label={t('navigator.chapterStart')}
+                title={t('navigator.chapterStart')}
+                className='shrink-0 text-primary'
+              >
+                <Flag className='size-3' />
+              </span>
+            )}
+            <span className='truncate'>{page.label}</span>
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -565,6 +615,13 @@ function PageItem({
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
+              <DropdownMenuItem onClick={onToggleChapterStart}>
+                <Flag />
+                {page.chapter_start
+                  ? t('navigator.removeChapterStart')
+                  : t('navigator.markChapterStart')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onRename}>{t('navigator.rename')}</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant='destructive' onClick={onDelete}>

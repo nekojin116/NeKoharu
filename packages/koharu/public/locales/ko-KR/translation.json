@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 작업",
+    "chapterStart": "챕터 시작",
     "delete": "삭제",
     "emptyDescription": "이미지 파일이나 폴더를 가져와 페이지를 추가하세요.",
     "emptyTitle": "아직 페이지가 없습니다",
@@ -294,6 +295,8 @@
     "layerCount": "레이어 {{count}}개",
     "layerCount_one": "레이어 {{count}}개",
     "layerCount_other": "레이어 {{count}}개",
+    "markChapterStart": "챕터 시작으로 표시",
+    "removeChapterStart": "챕터 시작 표시 제거",
     "noImage": "이미지 없음",
     "noResults": "필터와 일치하는 페이지가 없습니다.",
     "pageName": "페이지 이름",

@@ -60,6 +60,33 @@ pub(crate) async fn rename_page(
 
 #[tracing::instrument(
     target = "koharu_metrics",
+    name = "page_chapter_start_changed",
+    skip_all,
+    fields(origin = "user", chapter_start)
+)]
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn set_page_chapter_start(
+    page: EntityId,
+    chapter_start: bool,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<(), Error> {
+    let (commit, active_page) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let commit = project.set_page_chapter_start(page, chapter_start).await?;
+        project.record_commit(&commit);
+        (commit, project.active_page())
+    };
+    let canvas = synchronize_canvas(&desktop, &commit, active_page).await?;
+    canvas_channel.channel.publish(canvas);
+    Ok(())
+}
+
+#[tracing::instrument(
+    target = "koharu_metrics",
     name = "pages_deleted",
     skip_all,
     fields(origin = "user", entity_count = pages.len()),

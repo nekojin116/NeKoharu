@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "Действия для {{page}}",
+    "chapterStart": "Начало главы",
     "delete": "Удалить",
     "emptyDescription": "Импортируйте изображения или папку, чтобы добавить страницы.",
     "emptyTitle": "Страниц пока нет",
@@ -294,6 +295,8 @@
     "layerCount": "Слоёв: {{count}}",
     "layerCount_one": "Слоёв: {{count}}",
     "layerCount_other": "Слоёв: {{count}}",
+    "markChapterStart": "Отметить начало главы",
+    "removeChapterStart": "Убрать отметку начала главы",
     "noImage": "Нет изображения",
     "noResults": "Нет страниц, соответствующих фильтру.",
     "pageName": "Название страницы",

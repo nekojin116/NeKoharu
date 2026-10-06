@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "Ações para {{page}}",
+    "chapterStart": "Início do capítulo",
     "delete": "Excluir",
     "emptyDescription": "Importe arquivos de imagem ou uma pasta para adicionar páginas.",
     "emptyTitle": "Ainda não há páginas",
@@ -294,6 +295,8 @@
     "layerCount": "{{count}} camadas",
     "layerCount_one": "{{count}} camadas",
     "layerCount_other": "{{count}} camadas",
+    "markChapterStart": "Marcar como início do capítulo",
+    "removeChapterStart": "Remover marcador de início do capítulo",
     "noImage": "Sem imagem",
     "noResults": "Nenhuma página corresponde a este filtro.",
     "pageName": "Nome da página",
