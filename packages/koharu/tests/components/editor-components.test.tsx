@@ -14,6 +14,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { TitleBar } from '@/components/app/TitleBar'
 import { WindowControls } from '@/components/app/WindowChrome'
+import { FontPicker } from '@/components/controls/FontPicker'
 import { ActivityCenter } from '@/components/editor/ActivityCenter'
 import { CanvasCommandBar } from '@/components/editor/CanvasCommandBar'
 import { Inspector } from '@/components/editor/Inspector'
@@ -36,6 +37,7 @@ import { useKoharuStore } from '@/lib/store'
 import * as canvasRuntime from '@koharu/bridge/canvas'
 import {
   commands,
+  type FontFamily,
   type Layer,
   type PageSummary,
   type Preferences,
@@ -496,6 +498,67 @@ describe('greenfield editor', () => {
     expect(screen.queryByText('01')).not.toBeInTheDocument()
   })
 
+  it('navigates, previews, and scrolls font choices with the keyboard', async () => {
+    const user = userEvent.setup()
+    const families: FontFamily[] = Array.from({ length: 32 }, (_, index) => {
+      const name = `Font ${String(index + 1).padStart(2, '0')}`
+      return {
+        name,
+        metadata: {
+          primary_script: 'latn',
+          scripts: ['latn'],
+          languages: [],
+          category: null,
+          classifications: [],
+          use_cases: [],
+        },
+        sources: ['system'],
+        faces: [
+          {
+            postscript_name: name.replaceAll(' ', ''),
+            weight: 400,
+            weight_range: null,
+            style: 'normal',
+          },
+        ],
+      }
+    })
+    const getFontPreview = vi.spyOn(commands, 'getFontPreview').mockResolvedValue([1])
+    const onChange = vi.fn()
+    render(<FontPicker value='Font 01' families={families} onChange={onChange} />)
+
+    await user.click(screen.getByTestId('type-font-picker'))
+    const search = screen.getByRole('combobox', { name: 'Search fonts' })
+    const listbox = screen.getByRole('listbox', { name: 'Fonts' })
+    const viewport = listbox.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]')
+    expect(viewport).not.toBeNull()
+    Object.defineProperties(viewport!, {
+      clientHeight: { configurable: true, value: 248 },
+      scrollHeight: { configurable: true, value: 1400 },
+    })
+    const scrollTo = vi.fn((options: ScrollToOptions) => {
+      viewport!.scrollTop = options.top ?? 0
+      viewport!.dispatchEvent(new Event('scroll'))
+    })
+    Object.defineProperty(viewport!, 'scrollTo', { configurable: true, value: scrollTo })
+
+    for (let index = 0; index < 20; index += 1) {
+      fireEvent.keyDown(search, { key: 'ArrowDown' })
+    }
+
+    const activeOptionId = search.getAttribute('aria-activedescendant')
+    expect(activeOptionId).toBeTruthy()
+    const activeOption = document.getElementById(activeOptionId!)
+    expect(activeOption).toHaveTextContent('Font 21')
+    expect(activeOption).toHaveAttribute('data-highlighted', 'true')
+    await waitFor(() => expect(viewport!.scrollTop).toBeGreaterThan(0))
+    await waitFor(() => expect(getFontPreview).toHaveBeenCalledWith('Font 21'))
+
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('Font 21')
+    expect(screen.queryByRole('listbox', { name: 'Fonts' })).not.toBeInTheDocument()
+  })
+
   it('navigates between pages with the arrow keys without wrapping or interrupting text input', async () => {
     installProject()
     const pages = [
@@ -621,10 +684,7 @@ describe('greenfield editor', () => {
     )
     expect(viewport!.scrollTop).toBeGreaterThan(0)
     await waitFor(() =>
-      expect(screen.getByText('Page 21').closest('article')).toHaveAttribute(
-        'data-active',
-        'true',
-      ),
+      expect(screen.getByText('Page 21').closest('article')).toHaveAttribute('data-active', 'true'),
     )
   })
 
