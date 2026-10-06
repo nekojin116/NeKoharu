@@ -573,6 +573,60 @@ describe('greenfield editor', () => {
     expect(screen.queryByRole('listbox', { name: 'Fonts' })).not.toBeInTheDocument()
   })
 
+  it('applies keyboard font previews to the selected text while browsing', async () => {
+    installProject()
+    const setTypography = vi.spyOn(commands, 'setTypography').mockResolvedValue(null)
+    queryClient.setQueryData(
+      fontsKey,
+      ['Arial', 'Noto Sans'].map((name) => ({
+        name,
+        metadata: {
+          primary_script: 'latn',
+          scripts: ['latn'],
+          languages: ['en'],
+          category: 'SANS_SERIF',
+          classifications: ['sans-serif'],
+          use_cases: ['body-text'],
+        },
+        sources: ['system'],
+        faces: [
+          {
+            postscript_name: name.replaceAll(' ', ''),
+            weight: 400,
+            weight_range: null,
+            style: 'normal',
+          },
+        ],
+      })),
+    )
+    render(<Inspector />)
+
+    await userEvent.setup().click(screen.getByTestId('type-font-picker'))
+    const search = screen.getByRole('combobox', { name: 'Search fonts' })
+    fireEvent.keyDown(search, { key: 'ArrowUp' })
+    fireEvent.keyDown(search, { key: 'ArrowUp' })
+
+    await waitFor(() =>
+      expect(setTypography).toHaveBeenCalledWith([
+        expect.objectContaining({
+          layer: 'element',
+          typography: expect.objectContaining({ preferred_font: 'Arial' }),
+        }),
+      ]),
+    )
+    const hoveredOption = screen.getByRole('option', { name: /Noto Sans/ })
+    fireEvent.pointerMove(hoveredOption!, { pointerType: 'mouse' })
+
+    await waitFor(() =>
+      expect(setTypography).toHaveBeenLastCalledWith([
+        expect.objectContaining({
+          layer: 'element',
+          typography: expect.objectContaining({ preferred_font: 'Noto Sans' }),
+        }),
+      ]),
+    )
+  })
+
   it('navigates between pages with the arrow keys without wrapping or interrupting text input', async () => {
     installProject()
     const pages = [

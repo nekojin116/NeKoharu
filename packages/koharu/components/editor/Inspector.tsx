@@ -192,6 +192,19 @@ function TypeInspector() {
   const writingModeChoice = typography.writing_mode ?? 'Auto'
   const effectiveAlignment =
     typography.alignment ?? (writingMode === 'Vertical' ? 'Start' : 'Center')
+  const updateFont = (preferred_font: string) => {
+    const family = findFontFamily(families, preferred_font)
+    const nextStyles = usableFontStyles(family)
+    const fontStyle = nextStyles.includes(style) ? style : (nextStyles[0] ?? 'normal')
+    const nextWeights = usableFontWeights(family, fontStyle)
+    const fontWeight = nearestFontWeight(nextWeights, weight)
+    apply((value) => ({
+      ...value,
+      preferred_font,
+      font_weight: fontWeight,
+      font_style: fontStyle,
+    }))
+  }
 
   return (
     <div className='min-w-0 p-2' data-testid='type-inspector' aria-disabled={disabled}>
@@ -203,19 +216,8 @@ function TypeInspector() {
               families={families}
               disabled={disabled}
               size='sm'
-              onChange={(preferred_font) => {
-                const family = findFontFamily(families, preferred_font)
-                const nextStyles = usableFontStyles(family)
-                const fontStyle = nextStyles.includes(style) ? style : (nextStyles[0] ?? 'normal')
-                const nextWeights = usableFontWeights(family, fontStyle)
-                const fontWeight = nearestFontWeight(nextWeights, weight)
-                apply((value) => ({
-                  ...value,
-                  preferred_font,
-                  font_weight: fontWeight,
-                  font_style: fontStyle,
-                }))
-              }}
+              onPreview={updateFont}
+              onChange={updateFont}
             />
           </InspectorField>
           <InspectorField label={t('inspector.color')}>

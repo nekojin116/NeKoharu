@@ -54,6 +54,7 @@ export function FontPicker({
   size = 'default',
   ariaLabel,
   placeholder,
+  onPreview,
   onChange,
 }: {
   value: string
@@ -62,6 +63,7 @@ export function FontPicker({
   size?: 'default' | 'sm'
   ariaLabel?: string
   placeholder?: string
+  onPreview?: (family: string) => void
   onChange: (family: string) => void
 }) {
   const { t } = useTranslation()
@@ -71,6 +73,7 @@ export function FontPicker({
   const [activeFontIndex, setActiveFontIndex] = useState(0)
   const input = useRef<HTMLInputElement>(null)
   const keyboardNavigation = useRef(false)
+  const previewedFamily = useRef(value)
   const listId = useId()
   const orderedFamilies = useMemo(
     () =>
@@ -125,8 +128,22 @@ export function FontPicker({
     setFilters(next)
     setActiveFontIndex(0)
   }
+  const activateFont = (index: number) => {
+    const family = results[index]
+    if (!family) return
+    setActiveFontIndex(index)
+    if (
+      onPreview &&
+      normalizeFontName(previewedFamily.current) !== normalizeFontName(family.name)
+    ) {
+      previewedFamily.current = family.name
+      onPreview(family.name)
+    }
+  }
   const chooseFont = (family: string) => {
-    onChange(family)
+    if (!onPreview || normalizeFontName(previewedFamily.current) !== normalizeFontName(family)) {
+      onChange(family)
+    }
     setOpen(false)
   }
 
@@ -139,6 +156,7 @@ export function FontPicker({
           setQuery('')
           return
         }
+        previewedFamily.current = value
         setActiveFontIndex(selectedIndex >= 0 ? selectedIndex : 0)
       }}
     >
@@ -198,9 +216,7 @@ export function FontPicker({
                   event.preventDefault()
                   keyboardNavigation.current = true
                   const increment = event.key === 'ArrowDown' ? 1 : -1
-                  setActiveFontIndex((index) =>
-                    Math.max(0, Math.min(results.length - 1, index + increment)),
-                  )
+                  activateFont(Math.max(0, Math.min(results.length - 1, activeIndex + increment)))
                 } else if (event.key === 'Enter' && activeFamily) {
                   event.preventDefault()
                   chooseFont(activeFamily.name)
@@ -239,11 +255,11 @@ export function FontPicker({
             value={value}
             activeIndex={activeIndex}
             listId={listId}
-            onActiveIndexChange={setActiveFontIndex}
             onPointerMove={(index) => {
               keyboardNavigation.current = false
-              setActiveFontIndex(index)
+              activateFont(index)
             }}
+            onActiveIndexChange={activateFont}
             keyboardNavigation={keyboardNavigation}
             onSelect={chooseFont}
           />
