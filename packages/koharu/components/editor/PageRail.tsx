@@ -200,12 +200,13 @@ export function PageRail() {
 
       event.preventDefault()
       keyboardPageIndex.current = next
+      pageVirtualizer.scrollToIndex(next, { align: 'auto' })
       select(next, false, false)
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [active, pages, select])
+  }, [active, pageVirtualizer, pages, select])
 
   const prefetchOnIntent = (page: string) => {
     const project = queryClient.getQueryData<ProjectInfo | null>(projectKey)

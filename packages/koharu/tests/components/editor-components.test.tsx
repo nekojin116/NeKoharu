@@ -565,6 +565,69 @@ describe('greenfield editor', () => {
     await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-2'))
   })
 
+  it('scrolls the page rail to the active page during keyboard navigation', async () => {
+    installProject()
+    const pages = Array.from({ length: 31 }, (_, index) => ({
+      id: index === 0 ? 'page' : `page-${index}`,
+      label: `Page ${index + 1}`,
+      size: { width: 1000, height: 1500 },
+      layers: [],
+      regions: [],
+    }))
+    queryClient.setQueryData(
+      pagesKey,
+      pages.map((page) => ({
+        id: page.id,
+        label: page.label,
+        size: page.size,
+        source_asset: null,
+        layer_count: 0,
+      })),
+    )
+    vi.spyOn(canvasRuntime, 'showCanvasPage').mockReturnValue(false)
+    vi.spyOn(commands, 'selectPage').mockImplementation(async (id) => ({
+      project: {
+        name: 'Book',
+        revision: 1,
+        active_page: id,
+        can_undo: true,
+        can_redo: false,
+      },
+      page: pages.find((page) => page.id === id)!,
+    }))
+    render(<PageRail />)
+
+    const viewport = document.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]')
+    expect(viewport).not.toBeNull()
+    Object.defineProperties(viewport!, {
+      clientHeight: { configurable: true, value: 600 },
+      scrollHeight: { configurable: true, value: 3000 },
+    })
+    const scrollTo = vi.fn((options: ScrollToOptions) => {
+      viewport!.scrollTop = options.top ?? 0
+      viewport!.dispatchEvent(new Event('scroll'))
+    })
+    Object.defineProperty(viewport!, 'scrollTo', { configurable: true, value: scrollTo })
+
+    for (let index = 0; index < 20; index += 1) {
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+    }
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData<ProjectInfo>(projectKey)?.active_page).toBe('page-20'),
+    )
+    await waitFor(() =>
+      expect(scrollTo.mock.calls.some(([options]) => (options.top ?? 0) > 0)).toBe(true),
+    )
+    expect(viewport!.scrollTop).toBeGreaterThan(0)
+    await waitFor(() =>
+      expect(screen.getByText('Page 21').closest('article')).toHaveAttribute(
+        'data-active',
+        'true',
+      ),
+    )
+  })
+
   it('keeps rapid page switches on the latest native selection', async () => {
     installProject()
     const pages = [
