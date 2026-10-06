@@ -1493,6 +1493,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn moving_pages_uses_the_destination_index_after_removing_the_source() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let first = setup
+            .add_page(PageDraft::new("first", 100.0, 100.0), At::End)
+            .unwrap();
+        setup
+            .add_page(PageDraft::new("middle", 100.0, 100.0), At::End)
+            .unwrap();
+        let last = setup
+            .add_page(PageDraft::new("last", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        project.move_page(first, 2).await.unwrap();
+        assert_eq!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .iter()
+                .map(|page| page.label.as_str())
+                .collect::<Vec<_>>(),
+            ["middle", "last", "first"]
+        );
+
+        project.move_page(last, 0).await.unwrap();
+        assert_eq!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .iter()
+                .map(|page| page.label.as_str())
+                .collect::<Vec<_>>(),
+            ["last", "middle", "first"]
+        );
+    }
+
+    #[tokio::test]
     async fn pastes_text_layer_content_and_placement_to_another_page() {
         let mut session = Session::memory().await.unwrap();
         let mut setup = session.snapshot().edit();
