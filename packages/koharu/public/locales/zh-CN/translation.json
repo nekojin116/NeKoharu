@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 的操作",
+    "chapterStart": "章节开始",
     "delete": "删除",
     "emptyDescription": "导入图像文件或文件夹以添加页面。",
     "emptyTitle": "还没有页面",
@@ -294,6 +295,8 @@
     "layerCount": "{{count}} 个图层",
     "layerCount_one": "{{count}} 个图层",
     "layerCount_other": "{{count}} 个图层",
+    "markChapterStart": "标记为章节开始",
+    "removeChapterStart": "移除章节开始标记",
     "noImage": "无图像",
     "noResults": "没有与此筛选条件匹配的页面。",
     "pageName": "页面名称",

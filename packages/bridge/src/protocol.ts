@@ -42,6 +42,7 @@ export const commands = {
 	import: (source: PageImportSource) => __TAURI_INVOKE<null>("import", { source }),
 	selectPage: (page: EntityId) => __TAURI_INVOKE<PageSelection>("select_page", { page }).then((v) => (({...v,page:({...v.page,layers:v.page.layers.map(i=>i),regions:v.page.regions.map(i=>({...i,geometry:({...i.geometry,points:i.geometry.points.map(i=>i)})}))})}) as typeof v)),
 	renamePage: (page: EntityId, label: string) => __TAURI_INVOKE<null>("rename_page", { page, label }),
+	setPageChapterStart: (page: EntityId, chapterStart: boolean) => __TAURI_INVOKE<null>("set_page_chapter_start", { page, chapterStart }),
 	deletePages: (pages: EntityId[]) => __TAURI_INVOKE<null>("delete_pages", { pages }),
 	movePage: (page: EntityId, index: number) => __TAURI_INVOKE<null>("move_page", { page, index }),
 	setSourceText: (layer: EntityId, text: string) => __TAURI_INVOKE<null>("set_source_text", { layer, text }),
@@ -374,6 +375,7 @@ export type PageSummary = {
 	label: string,
 	size: PageSize,
 	source_asset: string | null,
+	chapter_start: boolean,
 	layer_count: number,
 };
 

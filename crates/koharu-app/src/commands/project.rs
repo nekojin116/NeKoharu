@@ -53,6 +53,7 @@ pub struct PageSummary {
     pub label: String,
     pub size: PageSize,
     pub source_asset: Option<String>,
+    pub chapter_start: bool,
     #[specta(type = f64)]
     pub layer_count: usize,
 }
@@ -346,6 +347,7 @@ impl Project {
                         height: value.height,
                     },
                     source_asset,
+                    chapter_start: value.chapter_start,
                     layer_count,
                 })
             })
@@ -356,7 +358,28 @@ impl Project {
         let snapshot = self.snapshot();
         let current = snapshot.page(page)?.page()?;
         let patch = snapshot.patch(|edit| {
-            edit.set_page(page, PageDraft::new(label, current.width, current.height))
+            edit.set_page(
+                page,
+                PageDraft::new(label, current.width, current.height)
+                    .with_chapter_start(current.chapter_start),
+            )
+        })?;
+        self.commit(patch).await
+    }
+
+    pub(crate) async fn set_page_chapter_start(
+        &mut self,
+        page: EntityId,
+        chapter_start: bool,
+    ) -> Result<Commit> {
+        let snapshot = self.snapshot();
+        let current = snapshot.page(page)?.page()?;
+        let patch = snapshot.patch(|edit| {
+            edit.set_page(
+                page,
+                PageDraft::new(current.label, current.width, current.height)
+                    .with_chapter_start(chapter_start),
+            )
         })?;
         self.commit(patch).await
     }
@@ -1438,6 +1461,71 @@ mod tests {
         assert_eq!(
             Project::typography_view(typography).writing_mode,
             Some(WritingMode::Vertical)
+        );
+    }
+
+    #[tokio::test]
+    async fn chapter_start_markers_are_projected_and_survive_page_renames() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let page = setup
+            .add_page(PageDraft::new("chapter start", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        project.set_page_chapter_start(page, true).await.unwrap();
+        assert!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .first()
+                .unwrap()
+                .chapter_start
+        );
+
+        project
+            .rename_page(page, "renamed chapter".to_owned())
+            .await
+            .unwrap();
+        let summary = Project::pages(&project.snapshot()).unwrap();
+        assert_eq!(summary[0].label, "renamed chapter");
+        assert!(summary[0].chapter_start);
+    }
+
+    #[tokio::test]
+    async fn moving_pages_uses_the_destination_index_after_removing_the_source() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let first = setup
+            .add_page(PageDraft::new("first", 100.0, 100.0), At::End)
+            .unwrap();
+        setup
+            .add_page(PageDraft::new("middle", 100.0, 100.0), At::End)
+            .unwrap();
+        let last = setup
+            .add_page(PageDraft::new("last", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        project.move_page(first, 2).await.unwrap();
+        assert_eq!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .iter()
+                .map(|page| page.label.as_str())
+                .collect::<Vec<_>>(),
+            ["middle", "last", "first"]
+        );
+
+        project.move_page(last, 0).await.unwrap();
+        assert_eq!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .iter()
+                .map(|page| page.label.as_str())
+                .collect::<Vec<_>>(),
+            ["last", "middle", "first"]
         );
     }
 

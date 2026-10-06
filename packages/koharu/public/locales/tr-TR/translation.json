@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}} için eylemler",
+    "chapterStart": "Bölüm başlangıcı",
     "delete": "Sil",
     "emptyDescription": "Sayfa eklemek için görüntü dosyalarını veya bir klasörü içe aktarın.",
     "emptyTitle": "Henüz sayfa yok",
@@ -294,6 +295,8 @@
     "layerCount": "{{count}} katman",
     "layerCount_one": "{{count}} katman",
     "layerCount_other": "{{count}} katman",
+    "markChapterStart": "Bölüm başlangıcı olarak işaretle",
+    "removeChapterStart": "Bölüm başlangıç işaretini kaldır",
     "noImage": "Görüntü yok",
     "noResults": "Bu filtreyle eşleşen sayfa yok.",
     "pageName": "Sayfa adı",

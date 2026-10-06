@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}}の操作",
+    "chapterStart": "章の開始",
     "delete": "削除",
     "emptyDescription": "画像ファイルまたはフォルダーを読み込んでページを追加します。",
     "emptyTitle": "ページがまだありません",
@@ -294,6 +295,8 @@
     "layerCount": "{{count}}レイヤー",
     "layerCount_one": "{{count}}レイヤー",
     "layerCount_other": "{{count}}レイヤー",
+    "markChapterStart": "章の開始としてマーク",
+    "removeChapterStart": "章の開始マーカーを削除",
     "noImage": "画像なし",
     "noResults": "このフィルターに一致するページはありません。",
     "pageName": "ページ名",

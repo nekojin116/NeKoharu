@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import {
   act,
+  createEvent,
   fireEvent,
   render as testingRender,
   renderHook,
@@ -213,6 +214,7 @@ function installProject() {
       label: 'Page 1',
       size: { width: 1000, height: 1500 },
       source_asset: 'source',
+      chapter_start: false,
       layer_count: 1,
     },
   ])
@@ -490,6 +492,158 @@ describe('greenfield editor', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('3 selected')
   })
 
+  it.each([
+    { source: 'Page 1', target: 'Page 3', clientY: 25, index: 1, rejectMove: false },
+    { source: 'Page 3', target: 'Page 1', clientY: 75, index: 1, rejectMove: false },
+    { source: 'Page 1', target: 'Page 3', clientY: 25, index: 1, rejectMove: true },
+  ])(
+    'reorders a page into its $target drop position (failure=$rejectMove)',
+    async ({ source, target, clientY, index, rejectMove }) => {
+      installProject()
+      const pages: PageSummary[] = [
+        {
+          id: 'page',
+          label: 'Page 1',
+          size: { width: 1000, height: 1500 },
+          source_asset: 'source',
+          chapter_start: false,
+          layer_count: 1,
+        },
+        {
+          id: 'page-2',
+          label: 'Page 2',
+          size: { width: 1000, height: 1500 },
+          source_asset: null,
+          chapter_start: false,
+          layer_count: 0,
+        },
+        {
+          id: 'page-3',
+          label: 'Page 3',
+          size: { width: 1000, height: 1500 },
+          source_asset: null,
+          chapter_start: false,
+          layer_count: 0,
+        },
+      ]
+      queryClient.setQueryData(pagesKey, pages)
+      const getPages = vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+      const movePage = vi
+        .spyOn(commands, 'movePage')
+        .mockImplementation(() =>
+          rejectMove
+            ? Promise.reject(new Error('canvas synchronization failed'))
+            : Promise.resolve(null),
+        )
+      const setData = vi.fn()
+      const dataTransfer = {
+        dropEffect: 'none',
+        effectAllowed: 'all',
+        getData: () => '',
+        setData,
+      }
+      render(<PageRail />)
+
+      const sourcePage = screen.getByText(source).closest('article')!
+      const targetPage = screen.getByText(target).closest('article')!
+      getPages.mockClear()
+      vi.spyOn(targetPage, 'getBoundingClientRect').mockReturnValue({
+        top: 0,
+        height: 100,
+      } as DOMRect)
+      fireEvent.dragStart(sourcePage, { dataTransfer })
+      fireEvent.dragOver(targetPage, { clientY, dataTransfer })
+      const dropEvent = createEvent.drop(targetPage, { dataTransfer })
+      Object.defineProperty(dropEvent, 'clientY', { value: clientY })
+      fireEvent(targetPage, dropEvent)
+
+      const movingPage = source === 'Page 1' ? 'page' : 'page-3'
+      expect(dataTransfer.dropEffect).toBe('move')
+      expect(setData).toHaveBeenCalledWith('text/plain', movingPage)
+      await waitFor(() => expect(movePage).toHaveBeenCalledWith(movingPage, index))
+      await waitFor(() => expect(getPages).toHaveBeenCalled())
+    },
+  )
+
+  it('uses the last hovered page when CEF omits the drop event', async () => {
+    installProject()
+    const pages: PageSummary[] = [
+      {
+        id: 'page',
+        label: 'Page 1',
+        size: { width: 1000, height: 1500 },
+        source_asset: 'source',
+        chapter_start: false,
+        layer_count: 1,
+      },
+      {
+        id: 'page-2',
+        label: 'Page 2',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    const movePage = vi.spyOn(commands, 'movePage').mockResolvedValue(null)
+    const dataTransfer = { effectAllowed: 'move', setData: vi.fn() }
+    render(<PageRail />)
+    const sourcePage = screen.getByText('Page 1').closest('article')!
+    const targetPage = screen.getByText('Page 2').closest('article')!
+
+    fireEvent.dragStart(sourcePage, { dataTransfer })
+    fireEvent.dragOver(targetPage, { clientY: 0, dataTransfer })
+    fireEvent.dragEnd(sourcePage, { dataTransfer })
+
+    await waitFor(() => expect(movePage).toHaveBeenCalledWith('page', 1))
+  })
+
+  it('marks and unmarks chapter starts from the page actions menu', async () => {
+    const user = userEvent.setup()
+    installProject()
+    let chapterStart = false
+    const page: PageSummary = {
+      id: 'page',
+      label: 'Page 1',
+      size: { width: 1000, height: 1500 },
+      source_asset: 'source',
+      chapter_start: false,
+      layer_count: 1,
+    }
+    const getPages = vi
+      .spyOn(commands, 'getPages')
+      .mockImplementation(async () => [{ ...page, chapter_start: chapterStart }])
+    const setChapterStart = vi
+      .spyOn(commands, 'setPageChapterStart')
+      .mockImplementation(async (_id, next) => {
+        chapterStart = next
+        return null
+      })
+    queryClient.setQueryData(pagesKey, [page])
+    render(<PageRail />)
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 1' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Mark as chapter start' }))
+    await waitFor(() => expect(setChapterStart).toHaveBeenLastCalledWith('page', true))
+    expect(await screen.findByRole('img', { name: 'Chapter start' })).toBeInTheDocument()
+    expect(screen.getByText('Page 1').closest('article')).toHaveAttribute(
+      'data-chapter-start',
+      'true',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 1' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Remove chapter start marker' }))
+    await waitFor(() => expect(setChapterStart).toHaveBeenLastCalledWith('page', false))
+    await waitFor(() => expect(getPages).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('img', { name: 'Chapter start' })).not.toBeInTheDocument()
+    expect(screen.getByText('Page 1').closest('article')).toHaveAttribute(
+      'data-chapter-start',
+      'false',
+    )
+  })
+
   it('loads page thumbnails into the filmstrip', async () => {
     installProject()
     const thumbnail = vi.spyOn(commands, 'getThumbnail').mockResolvedValue([1])
@@ -657,6 +811,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       })),
     )
@@ -716,6 +871,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       })),
     )
@@ -786,6 +942,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       })),
     )
@@ -850,6 +1007,7 @@ describe('greenfield editor', () => {
         label: 'Page 2',
         size: { width: 1000, height: 1500 },
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       },
     ])
@@ -888,6 +1046,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       },
     ])
@@ -921,6 +1080,7 @@ describe('greenfield editor', () => {
         label: page.label,
         size: page.size,
         source_asset: null,
+        chapter_start: false,
         layer_count: 0,
       },
     ])
@@ -2156,6 +2316,7 @@ describe('greenfield editor', () => {
         label: 'cover.png',
         size: { width: 1000, height: 1500 },
         source_asset: 'source',
+        chapter_start: false,
         layer_count: 1,
       },
     ])

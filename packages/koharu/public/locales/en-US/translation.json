@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "Actions for {{page}}",
+    "chapterStart": "Chapter start",
     "delete": "Delete",
     "emptyDescription": "Import image files or a folder to add pages.",
     "emptyTitle": "No pages yet",
@@ -294,6 +295,8 @@
     "layerCount": "{{count}} layers",
     "layerCount_one": "{{count}} layer",
     "layerCount_other": "{{count}} layers",
+    "markChapterStart": "Mark as chapter start",
+    "removeChapterStart": "Remove chapter start marker",
     "noImage": "No image",
     "noResults": "No pages match this filter.",
     "pageName": "Page name",
