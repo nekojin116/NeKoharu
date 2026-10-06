@@ -67,6 +67,8 @@ interface IntentPrefetchState {
   pages: Set<string>
 }
 
+type DropPosition = 'before' | 'after'
+
 export function PageRail() {
   const { t } = useTranslation()
   const pages = usePages().data ?? emptyPages
@@ -82,7 +84,9 @@ export function PageRail() {
   const keyboardPageIndex = useRef<number | null>(null)
   const draggedPage = useRef<string | null>(null)
   const [dragged, setDragged] = useState<string | null>(null)
-  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ page: string; position: DropPosition } | null>(
+    null,
+  )
   const [query, setQuery] = useState('')
   const [renaming, setRenaming] = useState<PageSummary | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -355,7 +359,7 @@ export function PageRail() {
                       active={active === page.id}
                       selected={selected.includes(page.id)}
                       dragged={dragged === page.id}
-                      dropTarget={dropTarget === page.id}
+                      dropPosition={dropTarget?.page === page.id ? dropTarget.position : null}
                       onIntent={active === page.id ? undefined : () => prefetchOnIntent(page.id)}
                       onSelect={(additive, range) => select(index, additive, range)}
                       onDragStart={(event: DragEvent<HTMLElement>) => {
@@ -369,20 +373,25 @@ export function PageRail() {
                         setDragged(null)
                         setDropTarget(null)
                       }}
-                      onDragOver={() => {
+                      onDragOver={(position) => {
                         if (draggedPage.current && draggedPage.current !== page.id) {
-                          setDropTarget(page.id)
+                          setDropTarget({ page: page.id, position })
                         }
                       }}
                       onRename={() => openRename(page)}
                       onDelete={() => deletePage(page.id)}
                       onToggleChapterStart={() => setChapterStart(page)}
-                      onDrop={() => {
-                        const moving = draggedPage.current
+                      onDrop={(position, dataTransfer) => {
+                        const moving = draggedPage.current ?? dataTransfer.getData('text/plain')
                         if (moving && moving !== page.id) {
-                          void call(commands.movePage, moving, index)
-                            .then(() => refresh(projectKey, pagesKey))
-                            .catch(() => undefined)
+                          const movingIndex = pages.findIndex((item) => item.id === moving)
+                          if (movingIndex >= 0) {
+                            const targetIndex = index - (movingIndex < index ? 1 : 0)
+                            const destination = targetIndex + (position === 'after' ? 1 : 0)
+                            void call(commands.movePage, moving, destination)
+                              .finally(() => refresh(projectKey, pagesKey))
+                              .catch(() => undefined)
+                          }
                         }
                         draggedPage.current = null
                         setDragged(null)
@@ -517,7 +526,7 @@ function PageItem({
   active,
   selected,
   dragged,
-  dropTarget,
+  dropPosition,
   onIntent,
   onSelect,
   onDragStart,
@@ -532,16 +541,16 @@ function PageItem({
   active: boolean
   selected: boolean
   dragged: boolean
-  dropTarget: boolean
+  dropPosition: DropPosition | null
   onIntent?: () => void
   onSelect: (additive: boolean, range: boolean) => void
   onDragStart: (event: DragEvent<HTMLElement>) => void
   onDragEnd: () => void
-  onDragOver: () => void
+  onDragOver: (position: DropPosition) => void
   onRename: () => void
   onDelete: () => void
   onToggleChapterStart: () => void
-  onDrop: () => void
+  onDrop: (position: DropPosition, dataTransfer: DataTransfer) => void
 }) {
   const { t } = useTranslation()
 
@@ -552,14 +561,17 @@ function PageItem({
       data-selected={selected}
       data-chapter-start={page.chapter_start}
       className={cn(
-        'group grid cursor-grab grid-cols-[48px_minmax(0,1fr)] gap-2.5 rounded-xl p-1.5 transition-colors select-none active:cursor-grabbing',
+        'group relative grid cursor-grab grid-cols-[48px_minmax(0,1fr)] gap-2.5 rounded-xl p-1.5 transition-colors select-none active:cursor-grabbing',
         active
           ? 'bg-primary/[0.09] hover:bg-primary/[0.09]'
           : selected
             ? 'bg-foreground/[0.06] hover:bg-foreground/[0.08]'
             : 'hover:bg-foreground/[0.045]',
         dragged && 'opacity-50',
-        dropTarget && 'ring-1 ring-primary',
+        dropPosition === 'before' &&
+          'before:absolute before:inset-x-1 before:-top-px before:z-10 before:border-t-2 before:border-primary',
+        dropPosition === 'after' &&
+          'after:absolute after:inset-x-1 after:-bottom-px after:z-10 after:border-t-2 after:border-primary',
       )}
       onPointerEnter={onIntent}
       onFocus={onIntent}
@@ -572,11 +584,14 @@ function PageItem({
       onDragEnd={onDragEnd}
       onDragOver={(event) => {
         event.preventDefault()
-        onDragOver()
+        const bounds = event.currentTarget.getBoundingClientRect()
+        onDragOver(event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after')
       }}
       onDrop={(event) => {
         event.preventDefault()
-        onDrop()
+        const bounds = event.currentTarget.getBoundingClientRect()
+        const position = event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after'
+        onDrop(position, event.dataTransfer)
       }}
     >
       <div className='grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]'>

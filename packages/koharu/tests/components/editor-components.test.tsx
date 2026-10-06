@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import {
   act,
+  createEvent,
   fireEvent,
   render as testingRender,
   renderHook,
@@ -491,42 +492,72 @@ describe('greenfield editor', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('3 selected')
   })
 
-  it('reorders pages by dragging a page in the rail', async () => {
-    installProject()
-    const pages: PageSummary[] = [
-      {
-        id: 'page',
-        label: 'Page 1',
-        size: { width: 1000, height: 1500 },
-        source_asset: 'source',
-        chapter_start: false,
-        layer_count: 1,
-      },
-      {
-        id: 'page-2',
-        label: 'Page 2',
-        size: { width: 1000, height: 1500 },
-        source_asset: null,
-        chapter_start: false,
-        layer_count: 0,
-      },
-    ]
-    queryClient.setQueryData(pagesKey, pages)
-    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
-    const movePage = vi.spyOn(commands, 'movePage').mockResolvedValue(null)
-    const setData = vi.fn()
-    const dataTransfer = { effectAllowed: 'all', setData }
-    render(<PageRail />)
+  it.each([
+    { source: 'Page 1', target: 'Page 3', clientY: 25, index: 1, rejectMove: false },
+    { source: 'Page 3', target: 'Page 1', clientY: 75, index: 1, rejectMove: false },
+    { source: 'Page 1', target: 'Page 3', clientY: 25, index: 1, rejectMove: true },
+  ])(
+    'reorders a page into its $target drop position (failure=$rejectMove)',
+    async ({ source, target, clientY, index, rejectMove }) => {
+      installProject()
+      const pages: PageSummary[] = [
+        {
+          id: 'page',
+          label: 'Page 1',
+          size: { width: 1000, height: 1500 },
+          source_asset: 'source',
+          chapter_start: false,
+          layer_count: 1,
+        },
+        {
+          id: 'page-2',
+          label: 'Page 2',
+          size: { width: 1000, height: 1500 },
+          source_asset: null,
+          chapter_start: false,
+          layer_count: 0,
+        },
+        {
+          id: 'page-3',
+          label: 'Page 3',
+          size: { width: 1000, height: 1500 },
+          source_asset: null,
+          chapter_start: false,
+          layer_count: 0,
+        },
+      ]
+      queryClient.setQueryData(pagesKey, pages)
+      const getPages = vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+      const movePage = vi
+        .spyOn(commands, 'movePage')
+        .mockImplementation(() =>
+          rejectMove
+            ? Promise.reject(new Error('canvas synchronization failed'))
+            : Promise.resolve(null),
+        )
+      const setData = vi.fn()
+      const dataTransfer = { effectAllowed: 'all', getData: () => '', setData }
+      render(<PageRail />)
 
-    const first = screen.getByText('Page 1').closest('article')!
-    const second = screen.getByText('Page 2').closest('article')!
-    fireEvent.dragStart(first, { dataTransfer })
-    fireEvent.dragOver(second, { dataTransfer })
-    fireEvent.drop(second, { dataTransfer })
+      const sourcePage = screen.getByText(source).closest('article')!
+      const targetPage = screen.getByText(target).closest('article')!
+      getPages.mockClear()
+      vi.spyOn(targetPage, 'getBoundingClientRect').mockReturnValue({
+        top: 0,
+        height: 100,
+      } as DOMRect)
+      fireEvent.dragStart(sourcePage, { dataTransfer })
+      fireEvent.dragOver(targetPage, { clientY, dataTransfer })
+      const dropEvent = createEvent.drop(targetPage, { dataTransfer })
+      Object.defineProperty(dropEvent, 'clientY', { value: clientY })
+      fireEvent(targetPage, dropEvent)
 
-    expect(setData).toHaveBeenCalledWith('text/plain', 'page')
-    await waitFor(() => expect(movePage).toHaveBeenCalledWith('page', 1))
-  })
+      const movingPage = source === 'Page 1' ? 'page' : 'page-3'
+      expect(setData).toHaveBeenCalledWith('text/plain', movingPage)
+      await waitFor(() => expect(movePage).toHaveBeenCalledWith(movingPage, index))
+      await waitFor(() => expect(getPages).toHaveBeenCalled())
+    },
+  )
 
   it('marks and unmarks chapter starts from the page actions menu', async () => {
     const user = userEvent.setup()
