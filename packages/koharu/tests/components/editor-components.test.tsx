@@ -541,6 +541,11 @@ describe('greenfield editor', () => {
       viewport!.dispatchEvent(new Event('scroll'))
     })
     Object.defineProperty(viewport!, 'scrollTo', { configurable: true, value: scrollTo })
+    const initialOption = document.getElementById(
+      `${search.getAttribute('aria-controls')}-option-0`,
+    )
+    expect(initialOption).not.toBeNull()
+    fireEvent.pointerMove(initialOption!, { pointerType: 'mouse' })
 
     for (let index = 0; index < 20; index += 1) {
       fireEvent.keyDown(search, { key: 'ArrowDown' })
@@ -554,8 +559,17 @@ describe('greenfield editor', () => {
     await waitFor(() => expect(viewport!.scrollTop).toBeGreaterThan(0))
     await waitFor(() => expect(getFontPreview).toHaveBeenCalledWith('Font 21'))
 
+    fireEvent.mouseEnter(initialOption!)
+    expect(document.getElementById(activeOptionId!)).toHaveAttribute('data-highlighted', 'true')
+
+    const hoveredOption = document.getElementById(`${listbox.id}-option-18`)
+    expect(hoveredOption).not.toBeNull()
+    fireEvent.pointerMove(hoveredOption!, { pointerType: 'mouse' })
+    expect(search.getAttribute('aria-activedescendant')).toBe(`${listbox.id}-option-18`)
+
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
     fireEvent.keyDown(search, { key: 'Enter' })
-    expect(onChange).toHaveBeenCalledExactlyOnceWith('Font 21')
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('Font 20')
     expect(screen.queryByRole('listbox', { name: 'Fonts' })).not.toBeInTheDocument()
   })
 

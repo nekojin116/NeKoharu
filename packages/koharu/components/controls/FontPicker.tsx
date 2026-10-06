@@ -70,6 +70,7 @@ export function FontPicker({
   const [filters, setFilters] = useState<Filters>(emptyFilters)
   const [activeFontIndex, setActiveFontIndex] = useState(0)
   const input = useRef<HTMLInputElement>(null)
+  const keyboardNavigation = useRef(false)
   const listId = useId()
   const orderedFamilies = useMemo(
     () =>
@@ -195,6 +196,7 @@ export function FontPicker({
                 if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                   if (results.length === 0) return
                   event.preventDefault()
+                  keyboardNavigation.current = true
                   const increment = event.key === 'ArrowDown' ? 1 : -1
                   setActiveFontIndex((index) =>
                     Math.max(0, Math.min(results.length - 1, index + increment)),
@@ -238,6 +240,11 @@ export function FontPicker({
             activeIndex={activeIndex}
             listId={listId}
             onActiveIndexChange={setActiveFontIndex}
+            onPointerMove={(index) => {
+              keyboardNavigation.current = false
+              setActiveFontIndex(index)
+            }}
+            keyboardNavigation={keyboardNavigation}
             onSelect={chooseFont}
           />
         )}
@@ -400,6 +407,8 @@ function FontList({
   activeIndex,
   listId,
   onActiveIndexChange,
+  onPointerMove,
+  keyboardNavigation,
   onSelect,
 }: {
   families: FontFamily[]
@@ -407,6 +416,8 @@ function FontList({
   activeIndex: number
   listId: string
   onActiveIndexChange: (index: number) => void
+  onPointerMove: (index: number) => void
+  keyboardNavigation: { current: boolean }
   onSelect: (family: string) => void
 }) {
   const { t } = useTranslation()
@@ -477,7 +488,12 @@ function FontList({
                   'bg-accent text-accent-foreground',
               )}
               style={{ transform: `translateY(${virtualRow.start}px)` }}
-              onMouseEnter={() => onActiveIndexChange(virtualRow.index)}
+              onPointerMove={(event) => {
+                if (event.pointerType === 'mouse') onPointerMove(virtualRow.index)
+              }}
+              onMouseEnter={() => {
+                if (!keyboardNavigation.current) onActiveIndexChange(virtualRow.index)
+              }}
               onClick={() => onSelect(family.name)}
             >
               <div className='flex min-w-0 flex-1 flex-col justify-center gap-px'>
