@@ -536,7 +536,12 @@ describe('greenfield editor', () => {
             : Promise.resolve(null),
         )
       const setData = vi.fn()
-      const dataTransfer = { effectAllowed: 'all', getData: () => '', setData }
+      const dataTransfer = {
+        dropEffect: 'none',
+        effectAllowed: 'all',
+        getData: () => '',
+        setData,
+      }
       render(<PageRail />)
 
       const sourcePage = screen.getByText(source).closest('article')!
@@ -553,6 +558,7 @@ describe('greenfield editor', () => {
       fireEvent(targetPage, dropEvent)
 
       const movingPage = source === 'Page 1' ? 'page' : 'page-3'
+      expect(dataTransfer.dropEffect).toBe('move')
       expect(setData).toHaveBeenCalledWith('text/plain', movingPage)
       await waitFor(() => expect(movePage).toHaveBeenCalledWith(movingPage, index))
       await waitFor(() => expect(getPages).toHaveBeenCalled())

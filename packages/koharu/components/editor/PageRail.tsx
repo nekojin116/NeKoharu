@@ -584,6 +584,7 @@ function PageItem({
       onDragEnd={onDragEnd}
       onDragOver={(event) => {
         event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
         const bounds = event.currentTarget.getBoundingClientRect()
         onDragOver(event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after')
       }}
