@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
 import {
+  Columns2,
   FilePlus2,
   Flag,
   FolderOpen,
@@ -258,6 +259,21 @@ export function PageRail() {
       })
       .catch(() => undefined)
 
+  const mergePages = () => {
+    const ordered = pages.filter((page) => selected.includes(page.id))
+      .map((page) => page.id)
+      // Sort by visual position (left-to-right in the rail) to ensure correct composition order.
+      .sort((a, b) => pages.findIndex((p) => p.id === a) - pages.findIndex((p) => p.id === b))
+    if (ordered.length < 2) return
+    void call(commands.mergePages, ordered)
+      .then((merged) => {
+        selectPages([merged])
+        selectLayers([])
+        return refresh(projectKey, pagesKey, pageKey)
+      })
+      .catch(() => undefined)
+  }
+
   const openRename = (page: PageSummary) => {
     setRenaming(page)
     setRenameValue(page.label)
@@ -448,6 +464,8 @@ export function PageRail() {
                       onRename={() => openRename(page)}
                       onDelete={() => deletePage(page.id)}
                       onToggleChapterStart={() => setChapterStart(page)}
+                      canMerge={selected.length > 1}
+                      onMerge={mergePages}
                       onDrop={(position, dataTransfer) => {
                         const moving = draggedPage.current ?? dataTransfer.getData('text/plain')
                         if (!dropHandled.current && moving && moving !== page.id) {
@@ -595,6 +613,8 @@ function PageItem({
   onRename,
   onDelete,
   onToggleChapterStart,
+  onMerge,
+  canMerge,
   onDrop,
 }: {
   page: PageSummary
@@ -611,6 +631,8 @@ function PageItem({
   onRename: () => void
   onDelete: () => void
   onToggleChapterStart: () => void
+  onMerge: () => void
+  canMerge: boolean
   onDrop: (position: DropPosition, dataTransfer: DataTransfer) => void
 }) {
   const { t } = useTranslation()
@@ -701,6 +723,10 @@ function PageItem({
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
+              <DropdownMenuItem disabled={!canMerge} onClick={onMerge}>
+                <Columns2 /> {t('navigator.mergeAsSpread')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onToggleChapterStart}>
                 <Flag />
                 {page.chapter_start

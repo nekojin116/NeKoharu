@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}}の操作",
+    "mergeAsSpread": "見開きに結合",
     "chapterStart": "章の開始",
     "delete": "削除",
     "emptyDescription": "画像ファイルまたはフォルダーを読み込んでページを追加します。",

@@ -9,3 +9,4 @@
 - Copy and paste selected text layers between pages, preserving their text, placement, and formatting.
 - Reorder pages by dragging them in the page rail.
 - Manually mark chapter starts in the page rail to quickly find chapter boundaries.
+- Merge adjacent split-panel pages into one wide spread from the page menu, keeping their text layers, translations, cleanup layers, and analysis regions.
