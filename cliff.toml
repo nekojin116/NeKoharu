@@ -3,8 +3,8 @@
 
 [remote.github]
 # Canonical repository owner used for generated changelog links.
-owner = "koharu-rs"
-repo = "koharu"
+owner = "nekojin116"
+repo = "NeKoharu"
 
 [changelog]
 # A Tera template to be rendered for each release in the changelog.
