@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "Ações para {{page}}",
+    "mergeAsSpread": "Combinar em página dupla",
     "chapterStart": "Início do capítulo",
     "delete": "Excluir",
     "emptyDescription": "Importe arquivos de imagem ou uma pasta para adicionar páginas.",

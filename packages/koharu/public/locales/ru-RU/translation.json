@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "Действия для {{page}}",
+    "mergeAsSpread": "Объединить в разворот",
     "chapterStart": "Начало главы",
     "delete": "Удалить",
     "emptyDescription": "Импортируйте изображения или папку, чтобы добавить страницы.",

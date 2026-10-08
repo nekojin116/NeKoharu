@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 的操作",
+    "mergeAsSpread": "合并为跨页",
     "chapterStart": "章节开始",
     "delete": "删除",
     "emptyDescription": "导入图像文件或文件夹以添加页面。",

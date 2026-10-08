@@ -141,6 +141,33 @@ pub(crate) async fn move_page(
 
 #[tracing::instrument(
     target = "koharu_metrics",
+    name = "pages_merged",
+    skip_all,
+    fields(origin = "user", entity_count = pages.len()),
+)]
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn merge_pages(
+    pages: Vec<EntityId>,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<EntityId, Error> {
+    let (commit, merged) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let (commit, merged) = project.merge_pages(pages).await?;
+        project.record_commit(&commit);
+        project.select_page(merged)?;
+        (commit, merged)
+    };
+    let canvas = synchronize_canvas(&desktop, &commit, Some(merged)).await?;
+    canvas_channel.channel.publish(canvas);
+    Ok(merged)
+}
+
+#[tracing::instrument(
+    target = "koharu_metrics",
     name = "source_text_edited",
     skip_all,
     fields(origin = "user", character_count = text.chars().count(), empty = text.is_empty()),

@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}} için eylemler",
+    "mergeAsSpread": "Çift sayfada birleştir",
     "chapterStart": "Bölüm başlangıcı",
     "delete": "Sil",
     "emptyDescription": "Sayfa eklemek için görüntü dosyalarını veya bir klasörü içe aktarın.",

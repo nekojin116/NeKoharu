@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "Actions for {{page}}",
+    "mergeAsSpread": "Merge into spread",
     "chapterStart": "Chapter start",
     "delete": "Delete",
     "emptyDescription": "Import image files or a folder to add pages.",

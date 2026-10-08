@@ -1,4 +1,9 @@
-use std::{collections::HashSet, io::Cursor, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    io::Cursor,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use anyhow::{Context as _, Result, anyhow, bail};
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -402,6 +407,222 @@ impl Project {
         let at = Self::placement(&siblings, page, index);
         let patch = snapshot.patch(|edit| edit.move_entity(page, None, at))?;
         self.commit(patch).await
+    }
+
+    /// Combines an adjacent run of pages into one wide spread page. Source and
+    /// cleanup pixels are laid out left to right, while every child layer, text
+    /// group, translation, and analysis region is re-parented under the merged
+    /// page with the right-hand pages translated by the accumulated width of the
+    /// pages to their left. Relations are document scoped, so moving the entities
+    /// keeps `Presents`, `RecognizedFrom`, `FitsTo`, `FlowsIn`, and `Inside`
+    /// intact rather than rebuilding text content from scratch.
+    pub(crate) async fn merge_pages(&mut self, pages: Vec<EntityId>) -> Result<(Commit, EntityId)> {
+        let snapshot = self.snapshot();
+        let order = snapshot.pages().map(|page| page.id()).collect::<Vec<_>>();
+        let pages = Self::contiguous_run(&order, pages)?;
+        let source_role = AssetRole::new("source")?;
+
+        // Read every page-sized image before building the patch, because blob
+        // reads are asynchronous while the scene edit itself is synchronous.
+        let mut offsets = Vec::with_capacity(pages.len());
+        let mut source_images = Vec::with_capacity(pages.len());
+        let mut total_width = 0u32;
+        let mut total_height = 0u32;
+        for &page in &pages {
+            let value = snapshot.page(page)?.page()?;
+            let width = value.width.round().max(1.0) as u32;
+            let height = value.height.round().max(1.0) as u32;
+            offsets.push(total_width);
+            total_width = total_width
+                .checked_add(width)
+                .context("the merged page is too wide")?;
+            total_height = total_height.max(height);
+            let asset = snapshot
+                .asset(page, &source_role)?
+                .with_context(|| format!("page {page} has no source image to merge"))?;
+            source_images.push(snapshot.read_blob(asset.blob).await?);
+        }
+        if total_width > MAX_MERGE_DIMENSION || total_height > MAX_MERGE_DIMENSION {
+            bail!("the merged page is larger than Koharu supports");
+        }
+
+        // Cleanup and paint layers are full-page pixel layers, so the renderer
+        // stretches them across the spread. Re-pad each to the merged width so its
+        // pixels stay in the correct half.
+        let mut raster_blobs = Vec::new();
+        for (index, &page) in pages.iter().enumerate() {
+            for child in snapshot.children(page)? {
+                if snapshot.component::<SceneRasterLayer>(child)?.is_none() {
+                    continue;
+                }
+                if let Some(asset) = snapshot.asset(child, &source_role)? {
+                    raster_blobs.push((child, offsets[index], snapshot.read_blob(asset.blob).await?));
+                }
+            }
+        }
+
+        let compose_offsets = offsets.clone();
+        let (merged_source, raster_assets) = tokio::task::spawn_blocking(
+            move || -> Result<(Arc<[u8]>, HashMap<EntityId, Arc<[u8]>>)> {
+                let decoded = source_images
+                    .iter()
+                    .map(|bytes| Ok(image::load_from_memory(bytes)?.to_rgba8()))
+                    .collect::<Result<Vec<_>>>()?;
+                let merged = compose_row(
+                    decoded
+                        .iter()
+                        .zip(&compose_offsets)
+                        .map(|(image, offset)| (i64::from(*offset), image)),
+                    total_width,
+                    total_height,
+                );
+                let merged_source = encode_png(merged)?;
+                let mut rasters = HashMap::new();
+                for (layer, offset, bytes) in raster_blobs {
+                    let image = image::load_from_memory(&bytes)?.to_rgba8();
+                    let padded = compose_row(
+                        std::iter::once((i64::from(offset), &image)),
+                        total_width,
+                        total_height,
+                    );
+                    rasters.insert(layer, encode_png(padded)?);
+                }
+                Ok((merged_source, rasters))
+            },
+        )
+        .await??;
+
+        let first = pages[0];
+        let first_page = snapshot.page(first)?.page()?;
+        let label = first_page.label;
+        let chapter_start = first_page.chapter_start;
+        let mut target_group = None;
+        for &page in &pages {
+            if let Some(group) = snapshot.page(page)?.text_group()? {
+                target_group = Some(group.id());
+                break;
+            }
+        }
+
+        let width = f64::from(total_width);
+        let height = f64::from(total_height);
+        let mut merged_page = None;
+        let patch = snapshot.patch(|edit| {
+            let merged = edit.add_page(
+                PageDraft::new(label.clone(), width, height).with_chapter_start(chapter_start),
+                At::Before(first),
+            )?;
+            merged_page = Some(merged);
+            edit.set_asset(
+                merged,
+                &source_role,
+                AssetInput::new(
+                    Arc::clone(&merged_source),
+                    "image/png",
+                    AssetMetadata {
+                        width: Some(total_width),
+                        height: Some(total_height),
+                        attributes: Default::default(),
+                    },
+                ),
+            )?;
+
+            // Adopt one source page's text group as the merged page's single text
+            // group; a page may only own one, so the others are emptied instead.
+            if let Some(group) = target_group {
+                edit.move_entity(group, Some(merged), At::End)?;
+            }
+
+            let mut roots = Vec::new();
+            for (&page, &offset) in pages.iter().zip(&offsets) {
+                for child in snapshot.children(page)? {
+                    if Some(child) == target_group {
+                        continue;
+                    }
+                    if snapshot.component::<SceneTextGroup>(child)?.is_some() {
+                        let group = target_group
+                            .expect("a merged text group exists when text layers are present");
+                        for layer in snapshot.children(child)? {
+                            roots.push((layer, group, f64::from(offset)));
+                        }
+                    } else {
+                        roots.push((child, merged, f64::from(offset)));
+                    }
+                }
+            }
+            for (root, parent, offset) in roots {
+                edit.move_entity(root, Some(parent), At::End)?;
+                for entity in snapshot.subtree(root)? {
+                    let id = entity.id();
+                    if let Some(asset) = raster_assets.get(&id) {
+                        edit.set_asset(
+                            id,
+                            &source_role,
+                            AssetInput::new(
+                                Arc::clone(asset),
+                                "image/png",
+                                AssetMetadata {
+                                    width: Some(total_width),
+                                    height: Some(total_height),
+                                    attributes: Default::default(),
+                                },
+                            ),
+                        )?;
+                    }
+                    if offset == 0.0 {
+                        continue;
+                    }
+                    if let Some(geometry) = snapshot.component::<SceneGeometry>(id)? {
+                        edit.set(
+                            id,
+                            &SceneGeometry {
+                                origin: geometry.origin,
+                                points: geometry
+                                    .points
+                                    .into_iter()
+                                    .map(|point| ScenePoint {
+                                        x: point.x + offset,
+                                        y: point.y,
+                                    })
+                                    .collect(),
+                            },
+                        )?;
+                    }
+                }
+            }
+
+            for &page in &pages {
+                edit.remove_entity(page, RemovePolicy::Cascade)?;
+            }
+            Ok(())
+        })?;
+        let merged = merged_page.context("the merged page was not created")?;
+        let commit = self.commit(patch).await?;
+        Ok((commit, merged))
+    }
+
+    /// Selects a run of unique, in-project pages, requires them to be adjacent in
+    /// reading order, and returns them left to right.
+    fn contiguous_run(order: &[EntityId], pages: Vec<EntityId>) -> Result<Vec<EntityId>> {
+        let mut selected = pages;
+        selected.sort_unstable();
+        selected.dedup();
+        if selected.len() < 2 {
+            bail!("merging a spread needs at least two pages");
+        }
+        let mut indices = Vec::with_capacity(selected.len());
+        for page in &selected {
+            let index = order
+                .iter()
+                .position(|candidate| candidate == page)
+                .with_context(|| format!("page {page} does not belong to this project"))?;
+            indices.push(index);
+        }
+        indices.sort_unstable();
+        if indices.windows(2).any(|window| window[1] != window[0] + 1) {
+            bail!("only adjacent pages can be merged into a spread");
+        }
+        Ok(indices.into_iter().map(|index| order[index]).collect())
     }
 
     pub(crate) async fn add_point_text(
@@ -1361,6 +1582,32 @@ fn validate_project_name(name: &str) -> Result<String> {
     Ok(name.to_owned())
 }
 
+/// Upper bound for a composed spread. Matches the renderer surface limit so a
+/// merged page is always renderable.
+const MAX_MERGE_DIMENSION: u32 = 32_768;
+
+/// Paints the given images into one transparent canvas at the supplied horizontal
+/// offsets, top aligned.
+fn compose_row<'a>(
+    fragments: impl IntoIterator<Item = (i64, &'a RgbaImage)>,
+    width: u32,
+    height: u32,
+) -> RgbaImage {
+    let mut canvas = RgbaImage::new(width, height);
+    for (offset, image) in fragments {
+        image::imageops::overlay(&mut canvas, image, offset, 0);
+    }
+    canvas
+}
+
+fn encode_png(image: RgbaImage) -> Result<Arc<[u8]>> {
+    let mut encoded = Cursor::new(Vec::new());
+    DynamicImage::ImageRgba8(image)
+        .write_to(&mut encoded, ImageFormat::Png)
+        .context("failed to encode a merged page image")?;
+    Ok(Arc::from(encoded.into_inner()))
+}
+
 fn rasterize_stroke(
     image: &mut RgbaImage,
     mode: RasterStrokeMode,
@@ -1433,6 +1680,87 @@ mod tests {
     use koharu_scene::{Generation, ProducerId, WritingMode};
 
     use super::*;
+
+    #[tokio::test]
+    async fn merging_adjacent_pages_composes_a_wide_spread_and_keeps_layers() {
+        let mut session = Session::memory().await.unwrap();
+        let source = AssetRole::new("source").unwrap();
+        let mut setup = session.snapshot().edit();
+        let left = setup
+            .add_page(PageDraft::new("left", 2.0, 3.0), At::End)
+            .unwrap();
+        let right = setup
+            .add_page(PageDraft::new("right", 4.0, 3.0), At::End)
+            .unwrap();
+        for (page, width, height) in [(left, 2u32, 3u32), (right, 4u32, 3u32)] {
+            let image = RgbaImage::from_pixel(width, height, image::Rgba([0, 0, 0, 255]));
+            let mut encoded = Cursor::new(Vec::new());
+            DynamicImage::ImageRgba8(image)
+                .write_to(&mut encoded, ImageFormat::Png)
+                .unwrap();
+            setup
+                .set_asset(
+                    page,
+                    &source,
+                    AssetInput::new(
+                        Arc::<[u8]>::from(encoded.into_inner()),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(width),
+                            height: Some(height),
+                            attributes: Default::default(),
+                        },
+                    ),
+                )
+                .unwrap();
+        }
+
+        let layout = SceneTextLayout {
+            origin: Origin::User,
+            kind: TextLayoutKind::Point,
+            angle_degrees: None,
+        };
+        let left_content = setup.add_text_content(left, At::End).unwrap();
+        setup
+            .add_text_layer(left, At::End, left_content, &layout)
+            .unwrap();
+        let right_content = setup.add_text_content(right, At::End).unwrap();
+        let right_layer = setup
+            .add_text_layer(right, At::End, right_content, &layout)
+            .unwrap();
+        let region = setup
+            .add_analysis_region::<koharu_scene::PanelRegion>(
+                right,
+                At::End,
+                &SceneGeometry::rectangle(0.0, 0.0, 2.0, 2.0),
+                None,
+            )
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (commit, merged) = project.merge_pages(vec![left, right]).await.unwrap();
+        project.record_commit(&commit);
+
+        let snapshot = project.snapshot();
+        let view = snapshot.page(merged).unwrap().page().unwrap();
+        assert_eq!((view.width, view.height), (6.0, 3.0));
+        assert_eq!(Project::pages(&snapshot).unwrap().len(), 1);
+        // Text layers from both pages survive under the single merged text group.
+        assert_eq!(
+            snapshot.entities_with::<SceneTextLayout>().unwrap().count(),
+            2
+        );
+        let group = snapshot.page(merged).unwrap().text_group().unwrap().unwrap();
+        assert_eq!(snapshot.parent(right_layer).unwrap(), Some(group.id()));
+        // The right page's region is translated by the left page's width.
+        let region = snapshot.component::<SceneGeometry>(region).unwrap().unwrap();
+        assert_eq!(region.points[0].x, 2.0);
+
+        // Undo restores the two source pages.
+        project.undo().await.unwrap();
+        assert_eq!(Project::pages(&project.snapshot()).unwrap().len(), 2);
+    }
 
     #[test]
     fn only_user_authored_direction_is_projected_as_an_override() {

@@ -282,6 +282,7 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 작업",
+    "mergeAsSpread": "양면 페이지로 병합",
     "chapterStart": "챕터 시작",
     "delete": "삭제",
     "emptyDescription": "이미지 파일이나 폴더를 가져와 페이지를 추가하세요.",
