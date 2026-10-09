@@ -466,8 +466,8 @@ impl Project {
         }
 
         let compose_offsets = offsets.clone();
-        let (merged_source, raster_assets) = tokio::task::spawn_blocking(
-            move || -> Result<(Arc<[u8]>, HashMap<EntityId, Arc<[u8]>>)> {
+        let (merged_source, raster_assets) =
+            tokio::task::spawn_blocking(move || -> Result<MergedSpread> {
                 let decoded = source_images
                     .iter()
                     .map(|bytes| Ok(image::load_from_memory(bytes)?.to_rgba8()))
@@ -492,9 +492,8 @@ impl Project {
                     rasters.insert(layer, encode_png(padded)?);
                 }
                 Ok((merged_source, rasters))
-            },
-        )
-        .await??;
+            })
+            .await??;
 
         let first = pages[0];
         let first_page = snapshot.page(first)?.page()?;
@@ -1589,6 +1588,10 @@ fn validate_project_name(name: &str) -> Result<String> {
 /// Upper bound for a composed spread. Matches the renderer surface limit so a
 /// merged page is always renderable.
 const MAX_MERGE_DIMENSION: u32 = 32_768;
+
+/// Composed spread PNG plus each cleanup/paint layer's re-padded PNG, keyed by
+/// layer.
+type MergedSpread = (Arc<[u8]>, HashMap<EntityId, Arc<[u8]>>);
 
 /// Paints the given images into one transparent canvas at the supplied horizontal
 /// offsets, top aligned.
