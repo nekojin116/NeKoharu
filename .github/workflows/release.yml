@@ -97,9 +97,19 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Fetch upstream tags for changelog boundaries
+        # The fork only carries its own tags, so without upstream's tags
+        # git-cliff treats the first fork release as the first release ever
+        # and dumps the whole project history into the changelog.
+        run: git fetch --tags --force https://github.com/koharu-rs/koharu.git
+
       - name: Generate release changelog
         id: release_notes
         shell: bash
+        env:
+          # [remote.github] enrichment needs a token or the GitHub API
+          # rate-limits shared runner IPs and git-cliff panics.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           {
             echo 'release_body<<EOF'
