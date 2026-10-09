@@ -135,21 +135,21 @@ impl<'a> Execution<'a> {
         let inputs = pages
             .iter()
             .map(|page| {
-        let images = self
-            .images
+                let images = self
+                    .images
                     .entry(*page)
-            .or_insert_with(|| Arc::new(ImageCache::default()))
-            .clone();
-            StageInput::new(
-                self.scene.clone(),
+                    .or_insert_with(|| Arc::new(ImageCache::default()))
+                    .clone();
+                StageInput::new(
+                    self.scene.clone(),
                     *page,
-                self.scope.entities(),
+                    self.scope.entities(),
                     self.scope.region(*page),
-                images,
-                self.inpainting_mask
-                    .as_ref()
+                    images,
+                    self.inpainting_mask
+                        .as_ref()
                         .filter(|mask| stage == Stage::Inpainting && mask.page == *page)
-                    .cloned(),
+                        .cloned(),
                 )
             })
             .collect();
@@ -176,27 +176,27 @@ impl<'a> Execution<'a> {
             StageOutcome::Stopped => {}
             StageOutcome::Skipped => {
                 for page in pages {
-                self.mark_complete(page, stage);
-                progress::emit(self.progress.as_ref(), Progress::Skipped { page, stage });
-            }
+                    self.mark_complete(page, stage);
+                    progress::emit(self.progress.as_ref(), Progress::Skipped { page, stage });
+                }
             }
             StageOutcome::Patch(patch) => {
                 if !self.commit_patch(&pages, stage, patch).await? {
                     return Ok(());
                 }
                 for page in pages {
-                self.mark_complete(page, stage);
-                progress::emit(
-                    self.progress.as_ref(),
-                    Progress::Finished {
-                        page,
-                        stage,
+                    self.mark_complete(page, stage);
+                    progress::emit(
+                        self.progress.as_ref(),
+                        Progress::Finished {
+                            page,
+                            stage,
                             model: model.clone(),
-                        elapsed,
-                    },
-                );
+                            elapsed,
+                        },
+                    );
+                }
             }
-        }
         }
         Ok(())
     }

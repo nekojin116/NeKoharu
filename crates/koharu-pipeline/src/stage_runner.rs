@@ -105,14 +105,14 @@ impl StageRunner {
     ) -> std::result::Result<StageOutcome, AttemptFailure> {
         let input = &job.inputs[0];
         for input in &job.inputs {
-        progress::emit(
-            job.progress.as_ref(),
-            Progress::Loading {
+            progress::emit(
+                job.progress.as_ref(),
+                Progress::Loading {
                     page: input.page(),
-                stage: job.stage,
-                model: model.to_owned(),
-            },
-        );
+                    stage: job.stage,
+                    model: model.to_owned(),
+                },
+            );
         }
         self.stages
             .load(job.stage)
@@ -125,14 +125,14 @@ impl StageRunner {
             return Ok(StageOutcome::Stopped);
         }
         for input in &job.inputs {
-        progress::emit(
-            job.progress.as_ref(),
-            Progress::Running {
+            progress::emit(
+                job.progress.as_ref(),
+                Progress::Running {
                     page: input.page(),
-                stage: job.stage,
-                model: model.to_owned(),
-            },
-        );
+                    stage: job.stage,
+                    model: model.to_owned(),
+                },
+            );
         }
         let processed = if job.stage == Stage::Translation {
             self.stages.process_translation(job.inputs.clone()).await

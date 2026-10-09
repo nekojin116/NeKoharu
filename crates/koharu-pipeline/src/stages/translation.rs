@@ -24,7 +24,7 @@ impl Processor {
             self.config.max_pages_per_request as usize
         } else {
             1
-    }
+        }
     }
 
     pub(super) async fn process_batch(
@@ -38,20 +38,20 @@ impl Processor {
         let mut page_ranges = Vec::new();
         for (page_number, input) in inputs.iter().enumerate() {
             let start = targets.len();
-        if let Some(group) = input.scene.page(input.page)?.text_group()? {
-            for layer in group.text_layers()? {
-                if !input.contains_entity(layer.id())? {
-                    continue;
-                }
-                let content = layer.content()?;
-                let Some(source) = content.source()? else {
-                    continue;
-                };
-                if !source.text.value.trim().is_empty() {
-                    targets.push((content.id(), source.text.value));
+            if let Some(group) = input.scene.page(input.page)?.text_group()? {
+                for layer in group.text_layers()? {
+                    if !input.contains_entity(layer.id())? {
+                        continue;
+                    }
+                    let content = layer.content()?;
+                    let Some(source) = content.source()? else {
+                        continue;
+                    };
+                    if !source.text.value.trim().is_empty() {
+                        targets.push((content.id(), source.text.value));
+                    }
                 }
             }
-        }
             page_ranges.push((page_number + 1, start, targets.len()));
         }
         let mut request = TranslationRequest::new(

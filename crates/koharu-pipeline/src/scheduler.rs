@@ -140,8 +140,8 @@ impl Scheduler {
                 .map(|index| {
                     let page = &mut self.pages[index];
                     if !page.started() {
-                self.active_pages += 1;
-            }
+                        self.active_pages += 1;
+                    }
                     page.stages[stage_index].state = WorkState::Running;
                     page.page
                 })

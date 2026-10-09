@@ -456,7 +456,11 @@ impl Project {
                     continue;
                 }
                 if let Some(asset) = snapshot.asset(child, &source_role)? {
-                    raster_blobs.push((child, offsets[index], snapshot.read_blob(asset.blob).await?));
+                    raster_blobs.push((
+                        child,
+                        offsets[index],
+                        snapshot.read_blob(asset.blob).await?,
+                    ));
                 }
             }
         }
@@ -1751,10 +1755,18 @@ mod tests {
             snapshot.entities_with::<SceneTextLayout>().unwrap().count(),
             2
         );
-        let group = snapshot.page(merged).unwrap().text_group().unwrap().unwrap();
+        let group = snapshot
+            .page(merged)
+            .unwrap()
+            .text_group()
+            .unwrap()
+            .unwrap();
         assert_eq!(snapshot.parent(right_layer).unwrap(), Some(group.id()));
         // The right page's region is translated by the left page's width.
-        let region = snapshot.component::<SceneGeometry>(region).unwrap().unwrap();
+        let region = snapshot
+            .component::<SceneGeometry>(region)
+            .unwrap()
+            .unwrap();
         assert_eq!(region.points[0].x, 2.0);
 
         // Undo restores the two source pages.
