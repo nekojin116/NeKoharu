@@ -25,6 +25,7 @@ import { StatusBar } from '@/components/editor/StatusBar'
 import { ToolBar } from '@/components/editor/ToolBar'
 import { ProviderPreferences } from '@/components/preferences/ProviderPreferences'
 import { SettingsPage } from '@/components/preferences/SettingsPage'
+import { FONT_FAVORITES_STORAGE_KEY, useFontFavorites } from '@/lib/fontFavorites'
 import {
   fontsKey,
   pageKey,
@@ -759,6 +760,57 @@ describe('greenfield editor', () => {
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(onChange).toHaveBeenCalledExactlyOnceWith('Font 20')
     expect(screen.queryByRole('listbox', { name: 'Fonts' })).not.toBeInTheDocument()
+  })
+
+  it('favorites fonts, lists them first under a header, and persists the choice', async () => {
+    window.localStorage.removeItem(FONT_FAVORITES_STORAGE_KEY)
+    useFontFavorites.setState({ favorites: [] })
+    const user = userEvent.setup()
+    const families: FontFamily[] = ['Font 01', 'Font 02', 'Font 03'].map((name) => ({
+      name,
+      metadata: {
+        primary_script: 'latn',
+        scripts: ['latn'],
+        languages: [],
+        category: null,
+        classifications: [],
+        use_cases: [],
+      },
+      sources: ['system'],
+      faces: [
+        {
+          postscript_name: name.replaceAll(' ', ''),
+          weight: 400,
+          weight_range: null,
+          style: 'normal',
+        },
+      ],
+    }))
+    vi.spyOn(commands, 'getFontPreview').mockResolvedValue([1])
+    render(<FontPicker value='' families={families} onChange={vi.fn()} />)
+
+    await user.click(screen.getByTestId('type-font-picker'))
+    expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add Font 02 to favorites' }))
+    expect(useFontFavorites.getState().favorites).toEqual(['Font 02'])
+    expect(JSON.parse(window.localStorage.getItem(FONT_FAVORITES_STORAGE_KEY) ?? '')).toEqual([
+      'Font 02',
+    ])
+
+    // The favorite pins above the remaining fonts under its own header.
+    expect(screen.getByText('Favorites')).toBeInTheDocument()
+    expect(screen.getByText('All fonts')).toBeInTheDocument()
+    const rows = screen.getAllByRole('option')
+    expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual([
+      'Font 02, System',
+      'Font 01, System',
+      'Font 03, System',
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Remove Font 02 from favorites' }))
+    expect(useFontFavorites.getState().favorites).toEqual([])
+    expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
   })
 
   it('applies keyboard font previews to the selected text while browsing', async () => {
