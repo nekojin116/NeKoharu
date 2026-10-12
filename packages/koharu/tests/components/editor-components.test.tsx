@@ -517,10 +517,16 @@ describe('greenfield editor', () => {
     vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
     render(<PageRail />)
 
-    const badges = screen
-      .getAllByRole('article')
-      .map((item) => item.querySelector('[data-page-number]')?.textContent)
+    const items = screen.getAllByRole('article')
+    const badges = items.map((item) => item.querySelector('[data-page-number]')?.textContent)
     expect(badges).toEqual(['1', '2'])
+    // The number lives in the text column under the label, not over the thumbnail.
+    expect(items[0]!.querySelector('[data-page-number]')?.parentElement).toHaveTextContent(
+      '0 layers',
+    )
+    expect(
+      items[0]!.querySelector('div')?.contains(items[0]!.querySelector('[data-page-number]')),
+    ).toBe(false)
   })
 
   it.each([
