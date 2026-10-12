@@ -82,12 +82,15 @@
     "activeFilterCount": "有効なフィルター: {{count}}件",
     "activeFilterCount_one": "有効なフィルター: {{count}}件",
     "activeFilterCount_other": "有効なフィルター: {{count}}件",
+    "addFavorite": "{{family}}をお気に入りに追加",
+    "allFonts": "すべてのフォント",
     "allPurposes": "すべての用途",
     "allScripts": "すべての文字体系",
     "allSources": "すべての提供元",
     "allStyles": "すべてのスタイル",
     "choose": "フォントを選択",
     "clearFilters": "フィルターをクリア",
+    "favorites": "お気に入り",
     "filter": "フォントを絞り込む",
     "filterActiveLabel": "フォントを絞り込む（{{count}}件有効）",
     "fontCount": "{{count}}個のフォント",
@@ -97,6 +100,7 @@
     "fonts": "フォント",
     "noResults": "この検索に一致するフォントはありません",
     "purpose": "用途",
+    "removeFavorite": "お気に入りから{{family}}を削除",
     "script": "文字体系",
     "scripts": {
       "arab": "アラビア文字",
@@ -368,6 +372,15 @@
       "title": "外観"
     },
     "backToEditor": "エディターに戻る",
+    "features": {
+      "title": "NeKoharu 機能",
+      "description": "NeKoharu フォーク限定のオプションです。",
+      "pages": "ページ",
+      "mergeDeleteOriginals": "結合後に元ページを削除",
+      "mergeDeleteOriginalsDescription": "ページを見開きに結合した後、元のページを削除します。オフの場合、元のページは残り、テキストとクリーンアップレイヤーだけが見開きに移動します。",
+      "showPageNumbers": "ページ番号を表示",
+      "showPageNumbersDescription": "ページレールで各ページ名の下に位置番号を表示します。"
+    },
     "generation": {
       "description": "言語モデルによる翻訳文の生成方法を調整します。",
       "enableReasoning": "推論を有効化",
@@ -434,6 +447,7 @@
     },
     "tabs": {
       "appearance": "外観",
+      "features": "NeKoharu 機能",
       "pipeline": "パイプライン",
       "providers": "プロバイダー",
       "shortcuts": "ショートカット",

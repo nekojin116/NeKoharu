@@ -82,12 +82,15 @@
     "activeFilterCount": "{{count}} filtros ativos",
     "activeFilterCount_one": "{{count}} filtro ativo",
     "activeFilterCount_other": "{{count}} filtros ativos",
+    "addFavorite": "Adicionar {{family}} aos favoritos",
+    "allFonts": "Todas as fontes",
     "allPurposes": "Todas as finalidades",
     "allScripts": "Todos os sistemas de escrita",
     "allSources": "Todas as origens",
     "allStyles": "Todos os estilos",
     "choose": "Escolher uma fonte",
     "clearFilters": "Limpar filtros",
+    "favorites": "Favoritos",
     "filter": "Filtrar fontes",
     "filterActiveLabel": "Filtrar fontes, {{count}} ativos",
     "fontCount": "{{count}} fontes",
@@ -97,6 +100,7 @@
     "fonts": "Fontes",
     "noResults": "Nenhuma fonte corresponde à busca",
     "purpose": "Finalidade",
+    "removeFavorite": "Remover {{family}} dos favoritos",
     "script": "Sistema de escrita",
     "scripts": {
       "arab": "Árabe",
@@ -368,6 +372,15 @@
       "title": "Aparência"
     },
     "backToEditor": "Voltar ao editor",
+    "features": {
+      "title": "Recursos do NeKoharu",
+      "description": "Opções exclusivas do fork NeKoharu.",
+      "pages": "Páginas",
+      "mergeDeleteOriginals": "Excluir páginas originais após a fusão",
+      "mergeDeleteOriginalsDescription": "Remove as páginas de origem quando são fundidas em uma dupla. Quando desativado, as originais permanecem no projeto e apenas suas camadas de texto e limpeza são movidas para a dupla.",
+      "showPageNumbers": "Mostrar números de página",
+      "showPageNumbersDescription": "Mostra a posição de cada página abaixo de seu nome na tira de páginas."
+    },
     "generation": {
       "description": "Ajuste como os modelos de linguagem geram o texto traduzido.",
       "enableReasoning": "Ativar raciocínio",
@@ -434,6 +447,7 @@
     },
     "tabs": {
       "appearance": "Aparência",
+      "features": "Recursos do NeKoharu",
       "pipeline": "Pipeline",
       "providers": "Provedores",
       "shortcuts": "Atalhos",

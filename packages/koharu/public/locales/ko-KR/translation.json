@@ -82,12 +82,15 @@
     "activeFilterCount": "활성 필터 {{count}}개",
     "activeFilterCount_one": "활성 필터 {{count}}개",
     "activeFilterCount_other": "활성 필터 {{count}}개",
+    "addFavorite": "{{family}}즐겨찾기에 추가",
+    "allFonts": "모든 글꼴",
     "allPurposes": "모든 용도",
     "allScripts": "모든 문자 체계",
     "allSources": "모든 출처",
     "allStyles": "모든 스타일",
     "choose": "글꼴 선택",
     "clearFilters": "필터 지우기",
+    "favorites": "즐겨찾기",
     "filter": "글꼴 필터링",
     "filterActiveLabel": "글꼴 필터링, {{count}}개 활성",
     "fontCount": "글꼴 {{count}}개",
@@ -97,6 +100,7 @@
     "fonts": "글꼴",
     "noResults": "검색과 일치하는 글꼴이 없습니다",
     "purpose": "용도",
+    "removeFavorite": "즐겨찾기에서 {{family}} 제거",
     "script": "문자 체계",
     "scripts": {
       "arab": "아랍 문자",
@@ -368,6 +372,15 @@
       "title": "모양"
     },
     "backToEditor": "편집기로 돌아가기",
+    "features": {
+      "title": "NeKoharu 기능",
+      "description": "NeKoharu 포크 전용 옵션입니다.",
+      "pages": "페이지",
+      "mergeDeleteOriginals": "병합 후 원본 페이지 삭제",
+      "mergeDeleteOriginalsDescription": "페이지를 맞춤으로 병합한 후 원본 페이지를 삭제합니다. 꺼져 있으면 원본 페이지가 유지되고 텍스트 및 정리 레이어만 맞춤으로 이동합니다.",
+      "showPageNumbers": "페이지 번호 표시",
+      "showPageNumbersDescription": "페이지 레일에서 각 페이지 이름 아래에 위치 번호를 표시합니다."
+    },
     "generation": {
       "description": "언어 모델이 번역문을 생성하는 방식을 조정합니다.",
       "enableReasoning": "추론 활성화",
@@ -434,6 +447,7 @@
     },
     "tabs": {
       "appearance": "모양",
+      "features": "NeKoharu 기능",
       "pipeline": "파이프라인",
       "providers": "제공자",
       "shortcuts": "단축키",

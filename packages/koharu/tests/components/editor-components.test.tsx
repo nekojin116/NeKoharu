@@ -25,6 +25,12 @@ import { StatusBar } from '@/components/editor/StatusBar'
 import { ToolBar } from '@/components/editor/ToolBar'
 import { ProviderPreferences } from '@/components/preferences/ProviderPreferences'
 import { SettingsPage } from '@/components/preferences/SettingsPage'
+import { FONT_FAVORITES_STORAGE_KEY, useFontFavorites } from '@/lib/fontFavorites'
+import {
+  FORK_PREFERENCES_STORAGE_KEY,
+  forkPreferenceDefaults,
+  useForkPreferences,
+} from '@/lib/forkPreferences'
 import {
   fontsKey,
   pageKey,
@@ -492,6 +498,97 @@ describe('greenfield editor', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('3 selected')
   })
 
+  it("shows each page's position even when its label differs from the order", () => {
+    installProject()
+    const pages: PageSummary[] = [
+      {
+        id: 'page-1',
+        label: 'Cover',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+      {
+        id: 'page-2',
+        label: 'Prologue',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    render(<PageRail />)
+
+    const items = screen.getAllByRole('article')
+    const badges = items.map((item) => item.querySelector('[data-page-number]')?.textContent)
+    expect(badges).toEqual(['1', '2'])
+    // The number lives in the text column under the label, not over the thumbnail.
+    expect(items[0]!.querySelector('[data-page-number]')?.parentElement).toHaveTextContent(
+      '0 layers',
+    )
+    expect(
+      items[0]!.querySelector('div')?.contains(items[0]!.querySelector('[data-page-number]')),
+    ).toBe(false)
+  })
+
+  it('merges selected adjacent pages in document order with the fork deletion preference', async () => {
+    window.localStorage.removeItem(FORK_PREFERENCES_STORAGE_KEY)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+    installProject()
+    const user = userEvent.setup()
+    const merge = vi.spyOn(commands, 'mergePages').mockResolvedValue('merged')
+    const pages: PageSummary[] = ['Page 1', 'Page 2'].map((label, index) => ({
+      id: `page-${index + 1}`,
+      label,
+      size: { width: 1000, height: 1500 },
+      source_asset: null,
+      chapter_start: false,
+      layer_count: 0,
+    }))
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    useKoharuStore.setState({ selectedPages: ['page-1', 'page-2'] })
+    render(<PageRail />)
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 1' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge into spread' }))
+    await waitFor(() => expect(merge).toHaveBeenCalledWith(['page-1', 'page-2'], false))
+
+    useForkPreferences.getState().setPreference('mergeDeleteOriginals', true)
+    useKoharuStore.setState({ selectedPages: ['page-1', 'page-2'] })
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 2' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge into spread' }))
+    await waitFor(() => expect(merge).toHaveBeenLastCalledWith(['page-1', 'page-2'], true))
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+  })
+
+  it('hides the page numbers when the fork preference is off', () => {
+    useForkPreferences.setState({
+      preferences: { mergeDeleteOriginals: false, showPageNumbers: false },
+    })
+    const pages: PageSummary[] = [
+      {
+        id: 'page-1',
+        label: 'Page 1',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 2,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    render(<PageRail />)
+
+    const item = screen.getAllByRole('article')[0]!
+    expect(item.querySelector('[data-page-number]')).toBeNull()
+    expect(item).toHaveTextContent('2 layers')
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+  })
+
   it.each([
     { source: 'Page 1', target: 'Page 3', clientY: 25, index: 1, rejectMove: false },
     { source: 'Page 3', target: 'Page 1', clientY: 75, index: 1, rejectMove: false },
@@ -729,6 +826,57 @@ describe('greenfield editor', () => {
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(onChange).toHaveBeenCalledExactlyOnceWith('Font 20')
     expect(screen.queryByRole('listbox', { name: 'Fonts' })).not.toBeInTheDocument()
+  })
+
+  it('favorites fonts, lists them first under a header, and persists the choice', async () => {
+    window.localStorage.removeItem(FONT_FAVORITES_STORAGE_KEY)
+    useFontFavorites.setState({ favorites: [] })
+    const user = userEvent.setup()
+    const families: FontFamily[] = ['Font 01', 'Font 02', 'Font 03'].map((name) => ({
+      name,
+      metadata: {
+        primary_script: 'latn',
+        scripts: ['latn'],
+        languages: [],
+        category: null,
+        classifications: [],
+        use_cases: [],
+      },
+      sources: ['system'],
+      faces: [
+        {
+          postscript_name: name.replaceAll(' ', ''),
+          weight: 400,
+          weight_range: null,
+          style: 'normal',
+        },
+      ],
+    }))
+    vi.spyOn(commands, 'getFontPreview').mockResolvedValue([1])
+    render(<FontPicker value='' families={families} onChange={vi.fn()} />)
+
+    await user.click(screen.getByTestId('type-font-picker'))
+    expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add Font 02 to favorites' }))
+    expect(useFontFavorites.getState().favorites).toEqual(['Font 02'])
+    expect(JSON.parse(window.localStorage.getItem(FONT_FAVORITES_STORAGE_KEY) ?? '')).toEqual([
+      'Font 02',
+    ])
+
+    // The favorite pins above the remaining fonts under its own header.
+    expect(screen.getByText('Favorites')).toBeInTheDocument()
+    expect(screen.getByText('All fonts')).toBeInTheDocument()
+    const rows = screen.getAllByRole('option')
+    expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual([
+      'Font 02, System',
+      'Font 01, System',
+      'Font 03, System',
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Remove Font 02 from favorites' }))
+    expect(useFontFavorites.getState().favorites).toEqual([])
+    expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
   })
 
   it('applies keyboard font previews to the selected text while browsing', async () => {
@@ -2231,6 +2379,33 @@ describe('greenfield editor', () => {
         font_families: ['Arial'],
       }),
     )
+  })
+
+  it('toggles NeKoharu fork features from their own settings tab', async () => {
+    window.localStorage.removeItem(FORK_PREFERENCES_STORAGE_KEY)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+    installProject()
+    const user = userEvent.setup()
+    useKoharuStore.setState({ settingsOpen: true })
+    render(
+      <ThemeProvider attribute='class'>
+        <SettingsPage />
+      </ThemeProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'NeKoharu Features' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'NeKoharu Features' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('switch', { name: 'Delete original pages after merging' }))
+    expect(useForkPreferences.getState().preferences.mergeDeleteOriginals).toBe(true)
+    expect(JSON.parse(window.localStorage.getItem(FORK_PREFERENCES_STORAGE_KEY) ?? '')).toEqual({
+      mergeDeleteOriginals: true,
+      showPageNumbers: true,
+    })
+
+    await user.click(screen.getByRole('switch', { name: 'Show page numbers' }))
+    expect(useForkPreferences.getState().preferences.showPageNumbers).toBe(false)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
   })
 
   it('shows model resources in the left sidebar footer', () => {

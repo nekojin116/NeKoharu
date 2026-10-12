@@ -82,12 +82,15 @@
     "activeFilterCount": "Активных фильтров: {{count}}",
     "activeFilterCount_one": "Активный фильтр: {{count}}",
     "activeFilterCount_other": "Активных фильтров: {{count}}",
+    "addFavorite": "Добавить {{family}} в избранное",
+    "allFonts": "Все шрифты",
     "allPurposes": "Все назначения",
     "allScripts": "Все системы письма",
     "allSources": "Все источники",
     "allStyles": "Все стили",
     "choose": "Выбрать шрифт",
     "clearFilters": "Очистить фильтры",
+    "favorites": "Избранное",
     "filter": "Фильтровать шрифты",
     "filterActiveLabel": "Фильтровать шрифты, активно: {{count}}",
     "fontCount": "Шрифтов: {{count}}",
@@ -97,6 +100,7 @@
     "fonts": "Шрифты",
     "noResults": "Нет шрифтов, соответствующих поиску",
     "purpose": "Назначение",
+    "removeFavorite": "Удалить {{family}} из избранного",
     "script": "Система письма",
     "scripts": {
       "arab": "Арабское письмо",
@@ -368,6 +372,15 @@
       "title": "Оформление"
     },
     "backToEditor": "Вернуться в редактор",
+    "features": {
+      "title": "Функции NeKoharu",
+      "description": "Эксклюзивные опции форка NeKoharu.",
+      "pages": "Страницы",
+      "mergeDeleteOriginals": "Удалять исходные страницы после объединения",
+      "mergeDeleteOriginalsDescription": "Удаляет исходные страницы после объединения их в разворот. Когда выключено, исходные страницы остаются в проекте, и только их текстовые и очищающие слои переходят в разворот.",
+      "showPageNumbers": "Показывать номера страниц",
+      "showPageNumbersDescription": "Показывает позицию каждой страницы под её именем в ленте страниц."
+    },
     "generation": {
       "description": "Настройте генерацию переведённого текста языковыми моделями.",
       "enableReasoning": "Включить рассуждение",
@@ -434,6 +447,7 @@
     },
     "tabs": {
       "appearance": "Оформление",
+      "features": "Функции NeKoharu",
       "pipeline": "Конвейер",
       "providers": "Провайдеры",
       "shortcuts": "Сочетания клавиш",
