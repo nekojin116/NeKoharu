@@ -492,6 +492,36 @@ describe('greenfield editor', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('3 selected')
   })
 
+  it("shows each page's position even when its label differs from the order", () => {
+    installProject()
+    const pages: PageSummary[] = [
+      {
+        id: 'page-1',
+        label: 'Cover',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+      {
+        id: 'page-2',
+        label: 'Prologue',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 0,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    render(<PageRail />)
+
+    const badges = screen
+      .getAllByRole('article')
+      .map((item) => item.querySelector('[data-page-number]')?.textContent)
+    expect(badges).toEqual(['1', '2'])
+  })
+
   it.each([
     { source: 'Page 1', target: 'Page 3', clientY: 25, index: 1, rejectMove: false },
     { source: 'Page 3', target: 'Page 1', clientY: 75, index: 1, rejectMove: false },

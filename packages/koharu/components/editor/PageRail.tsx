@@ -429,6 +429,7 @@ export function PageRail() {
                   >
                     <PageItem
                       page={page}
+                      index={index}
                       active={active === page.id}
                       selected={selected.includes(page.id)}
                       dragged={dragged === page.id}
@@ -600,6 +601,7 @@ function PageImportMenu({
 
 function PageItem({
   page,
+  index,
   active,
   selected,
   dragged,
@@ -618,6 +620,7 @@ function PageItem({
   onDrop,
 }: {
   page: PageSummary
+  index: number
   active: boolean
   selected: boolean
   dragged: boolean
@@ -684,10 +687,18 @@ function PageItem({
     >
       <div
         className={cn(
-          'grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
+          'relative grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
           isDragging && 'pointer-events-none',
         )}
       >
+        {/* Labels can be renamed to anything; this is the page's position. */}
+        <span
+          data-page-number={index + 1}
+          className='absolute bottom-0.5 left-0.5 z-10 rounded bg-black/45 px-1 text-[8px] leading-4 text-white tabular-nums'
+          aria-hidden
+        >
+          {index + 1}
+        </span>
         {page.source_asset ? (
           <PageThumbnail page={page.id} asset={page.source_asset} label={page.label} />
         ) : (
