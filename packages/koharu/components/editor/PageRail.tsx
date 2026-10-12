@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ResourceMonitor } from '@/components/editor/ResourceMonitor'
 import { call } from '@/lib/backend'
+import { useForkPreferences } from '@/lib/forkPreferences'
 import {
   pageKey,
   pagesKey,
@@ -78,6 +79,7 @@ export function PageRail() {
   const selectPages = useKoharuStore((state) => state.selectPages)
   const selectLayers = useKoharuStore((state) => state.selectLayers)
   const setSettingsOpen = useKoharuStore((state) => state.setSettingsOpen)
+  const mergeDeleteOriginals = useForkPreferences((state) => state.preferences.mergeDeleteOriginals)
   const { importPages, importing } = useImportPages()
   const anchor = useRef<number | null>(null)
   const selectionRequest = useRef(0)
@@ -265,7 +267,7 @@ export function PageRail() {
       // Sort by visual position (left-to-right in the rail) to ensure correct composition order.
       .sort((a, b) => pages.findIndex((p) => p.id === a) - pages.findIndex((p) => p.id === b))
     if (ordered.length < 2) return
-    void call(commands.mergePages, ordered)
+    void call(commands.mergePages, ordered, mergeDeleteOriginals)
       .then((merged) => {
         selectPages([merged])
         selectLayers([])
@@ -639,6 +641,7 @@ function PageItem({
   onDrop: (position: DropPosition, dataTransfer: DataTransfer) => void
 }) {
   const { t } = useTranslation()
+  const showPageNumbers = useForkPreferences((state) => state.preferences.showPageNumbers)
 
   return (
     <article
@@ -747,10 +750,17 @@ function PageItem({
         </div>
         {/* Labels can be renamed to anything; this is the page's position. */}
         <p className='mt-1 text-[9px] leading-3.5 text-muted-foreground'>
-          <span data-page-number={index + 1} className='font-medium text-foreground tabular-nums'>
-            {index + 1}
-          </span>
-          {' · '}
+          {showPageNumbers && (
+            <>
+              <span
+                data-page-number={index + 1}
+                className='font-medium text-foreground tabular-nums'
+              >
+                {index + 1}
+              </span>
+              {' · '}
+            </>
+          )}
           {t('navigator.layerCount', { count: page.layer_count })}
         </p>
         <p className='mt-1 text-[9px] text-muted-foreground tabular-nums'>

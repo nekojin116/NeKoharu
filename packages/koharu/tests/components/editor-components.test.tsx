@@ -27,6 +27,11 @@ import { ProviderPreferences } from '@/components/preferences/ProviderPreference
 import { SettingsPage } from '@/components/preferences/SettingsPage'
 import { FONT_FAVORITES_STORAGE_KEY, useFontFavorites } from '@/lib/fontFavorites'
 import {
+  FORK_PREFERENCES_STORAGE_KEY,
+  forkPreferenceDefaults,
+  useForkPreferences,
+} from '@/lib/forkPreferences'
+import {
   fontsKey,
   pageKey,
   pagesKey,
@@ -527,6 +532,61 @@ describe('greenfield editor', () => {
     expect(
       items[0]!.querySelector('div')?.contains(items[0]!.querySelector('[data-page-number]')),
     ).toBe(false)
+  })
+
+  it('merges selected adjacent pages in document order with the fork deletion preference', async () => {
+    window.localStorage.removeItem(FORK_PREFERENCES_STORAGE_KEY)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+    installProject()
+    const user = userEvent.setup()
+    const merge = vi.spyOn(commands, 'mergePages').mockResolvedValue('merged')
+    const pages: PageSummary[] = ['Page 1', 'Page 2'].map((label, index) => ({
+      id: `page-${index + 1}`,
+      label,
+      size: { width: 1000, height: 1500 },
+      source_asset: null,
+      chapter_start: false,
+      layer_count: 0,
+    }))
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    useKoharuStore.setState({ selectedPages: ['page-1', 'page-2'] })
+    render(<PageRail />)
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 1' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge into spread' }))
+    await waitFor(() => expect(merge).toHaveBeenCalledWith(['page-1', 'page-2'], false))
+
+    useForkPreferences.getState().setPreference('mergeDeleteOriginals', true)
+    useKoharuStore.setState({ selectedPages: ['page-1', 'page-2'] })
+    await user.click(screen.getByRole('button', { name: 'Actions for Page 2' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge into spread' }))
+    await waitFor(() => expect(merge).toHaveBeenLastCalledWith(['page-1', 'page-2'], true))
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+  })
+
+  it('hides the page numbers when the fork preference is off', () => {
+    useForkPreferences.setState({
+      preferences: { mergeDeleteOriginals: false, showPageNumbers: false },
+    })
+    const pages: PageSummary[] = [
+      {
+        id: 'page-1',
+        label: 'Page 1',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        chapter_start: false,
+        layer_count: 2,
+      },
+    ]
+    queryClient.setQueryData(pagesKey, pages)
+    vi.spyOn(commands, 'getPages').mockResolvedValue(pages)
+    render(<PageRail />)
+
+    const item = screen.getAllByRole('article')[0]!
+    expect(item.querySelector('[data-page-number]')).toBeNull()
+    expect(item).toHaveTextContent('2 layers')
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
   })
 
   it.each([
@@ -2319,6 +2379,33 @@ describe('greenfield editor', () => {
         font_families: ['Arial'],
       }),
     )
+  })
+
+  it('toggles NeKoharu fork features from their own settings tab', async () => {
+    window.localStorage.removeItem(FORK_PREFERENCES_STORAGE_KEY)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+    installProject()
+    const user = userEvent.setup()
+    useKoharuStore.setState({ settingsOpen: true })
+    render(
+      <ThemeProvider attribute='class'>
+        <SettingsPage />
+      </ThemeProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'NeKoharu Features' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'NeKoharu Features' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('switch', { name: 'Delete original pages after merging' }))
+    expect(useForkPreferences.getState().preferences.mergeDeleteOriginals).toBe(true)
+    expect(JSON.parse(window.localStorage.getItem(FORK_PREFERENCES_STORAGE_KEY) ?? '')).toEqual({
+      mergeDeleteOriginals: true,
+      showPageNumbers: true,
+    })
+
+    await user.click(screen.getByRole('switch', { name: 'Show page numbers' }))
+    expect(useForkPreferences.getState().preferences.showPageNumbers).toBe(false)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
   })
 
   it('shows model resources in the left sidebar footer', () => {

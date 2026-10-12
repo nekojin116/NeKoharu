@@ -9,6 +9,7 @@ import {
   Monitor,
   Moon,
   Palette,
+  Sparkles,
   Sun,
   Type,
 } from 'lucide-react'
@@ -16,6 +17,7 @@ import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { FeaturesPreferences } from '@/components/preferences/FeaturesPreferences'
 import { PipelinePreferences } from '@/components/preferences/PipelinePreferences'
 import {
   PreferencePage,
@@ -51,6 +53,7 @@ const tabs = [
   ['providers', KeyRound],
   ['translation', Languages],
   ['typesetting', Type],
+  ['features', Sparkles],
   ['shortcuts', Keyboard],
 ] as const
 type Tab = (typeof tabs)[number][0]
@@ -230,6 +233,7 @@ export function SettingsPage() {
               ) : (
                 <LoadingPreferences />
               ))}
+            {tab === 'features' && <FeaturesPreferences />}
             {tab === 'shortcuts' && <ShortcutPreferences />}
           </div>
         </ScrollArea>

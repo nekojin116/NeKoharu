@@ -409,14 +409,23 @@ impl Project {
         self.commit(patch).await
     }
 
-    /// Combines an adjacent run of pages into one wide spread page. Source and
-    /// cleanup pixels are laid out left to right, while every child layer, text
-    /// group, translation, and analysis region is re-parented under the merged
-    /// page with the right-hand pages translated by the accumulated width of the
-    /// pages to their left. Relations are document scoped, so moving the entities
-    /// keeps `Presents`, `RecognizedFrom`, `FitsTo`, `FlowsIn`, and `Inside`
-    /// intact rather than rebuilding text content from scratch.
-    pub(crate) async fn merge_pages(&mut self, pages: Vec<EntityId>) -> Result<(Commit, EntityId)> {
+    /// Combines an adjacent run of pages into one wide spread page. NeKoharu
+    /// diverges from upstream here: manga reads right to left, so the run's
+    /// first page lands on the right half of the spread and every later page is
+    /// placed to its left. Source and cleanup pixels follow those offsets while
+    /// every child layer, text group, translation, and analysis region is
+    /// re-parented under the merged page with the offset pages translated by the
+    /// accumulated width of the pages to their right. Relations are document
+    /// scoped, so moving the entities keeps `Presents`, `RecognizedFrom`,
+    /// `FitsTo`, `FlowsIn`, and `Inside` intact rather than rebuilding text
+    /// content from scratch. When `delete_originals` is false the source pages
+    /// stay in the project as image-only pages, their layers having moved to the
+    /// spread.
+    pub(crate) async fn merge_pages(
+        &mut self,
+        pages: Vec<EntityId>,
+        delete_originals: bool,
+    ) -> Result<(Commit, EntityId)> {
         let snapshot = self.snapshot();
         let order = snapshot.pages().map(|page| page.id()).collect::<Vec<_>>();
         let pages = Self::contiguous_run(&order, pages)?;
@@ -425,6 +434,7 @@ impl Project {
         // Read every page-sized image before building the patch, because blob
         // reads are asynchronous while the scene edit itself is synchronous.
         let mut offsets = Vec::with_capacity(pages.len());
+        let mut widths = Vec::with_capacity(pages.len());
         let mut source_images = Vec::with_capacity(pages.len());
         let mut total_width = 0u32;
         let mut total_height = 0u32;
@@ -432,6 +442,7 @@ impl Project {
             let value = snapshot.page(page)?.page()?;
             let width = value.width.round().max(1.0) as u32;
             let height = value.height.round().max(1.0) as u32;
+            widths.push(width);
             offsets.push(total_width);
             total_width = total_width
                 .checked_add(width)
@@ -442,6 +453,14 @@ impl Project {
                 .with_context(|| format!("page {page} has no source image to merge"))?;
             source_images.push(snapshot.read_blob(asset.blob).await?);
         }
+        // Manga reads right to left: each page sits at the far right of the
+        // pages that follow it, which is the total width minus the end of its
+        // original left-to-right slot.
+        offsets = offsets
+            .into_iter()
+            .zip(&widths)
+            .map(|(offset, &width)| total_width - offset - width)
+            .collect();
         if total_width > MAX_MERGE_DIMENSION || total_height > MAX_MERGE_DIMENSION {
             bail!("the merged page is larger than Koharu supports");
         }
@@ -594,8 +613,10 @@ impl Project {
                 }
             }
 
-            for &page in &pages {
-                edit.remove_entity(page, RemovePolicy::Cascade)?;
+            if delete_originals {
+                for &page in &pages {
+                    edit.remove_entity(page, RemovePolicy::Cascade)?;
+                }
             }
             Ok(())
         })?;
@@ -1699,13 +1720,13 @@ mod tests {
         let mut session = Session::memory().await.unwrap();
         let source = AssetRole::new("source").unwrap();
         let mut setup = session.snapshot().edit();
-        let left = setup
-            .add_page(PageDraft::new("left", 2.0, 3.0), At::End)
+        let first = setup
+            .add_page(PageDraft::new("first", 2.0, 3.0), At::End)
             .unwrap();
-        let right = setup
-            .add_page(PageDraft::new("right", 4.0, 3.0), At::End)
+        let second = setup
+            .add_page(PageDraft::new("second", 4.0, 3.0), At::End)
             .unwrap();
-        for (page, width, height) in [(left, 2u32, 3u32), (right, 4u32, 3u32)] {
+        for (page, width, height) in [(first, 2u32, 3u32), (second, 4u32, 3u32)] {
             let image = RgbaImage::from_pixel(width, height, image::Rgba([0, 0, 0, 255]));
             let mut encoded = Cursor::new(Vec::new());
             DynamicImage::ImageRgba8(image)
@@ -1733,17 +1754,25 @@ mod tests {
             kind: TextLayoutKind::Point,
             angle_degrees: None,
         };
-        let left_content = setup.add_text_content(left, At::End).unwrap();
+        let first_content = setup.add_text_content(first, At::End).unwrap();
         setup
-            .add_text_layer(left, At::End, left_content, &layout)
+            .add_text_layer(first, At::End, first_content, &layout)
             .unwrap();
-        let right_content = setup.add_text_content(right, At::End).unwrap();
-        let right_layer = setup
-            .add_text_layer(right, At::End, right_content, &layout)
+        let second_content = setup.add_text_content(second, At::End).unwrap();
+        let second_layer = setup
+            .add_text_layer(second, At::End, second_content, &layout)
             .unwrap();
-        let region = setup
+        let first_region = setup
             .add_analysis_region::<koharu_scene::PanelRegion>(
-                right,
+                first,
+                At::End,
+                &SceneGeometry::rectangle(0.0, 0.0, 2.0, 2.0),
+                None,
+            )
+            .unwrap();
+        let second_region = setup
+            .add_analysis_region::<koharu_scene::PanelRegion>(
+                second,
                 At::End,
                 &SceneGeometry::rectangle(0.0, 0.0, 2.0, 2.0),
                 None,
@@ -1752,7 +1781,10 @@ mod tests {
         session.commit(setup.finish().unwrap()).await.unwrap();
         let mut project = Project::new(session, "test".to_owned());
 
-        let (commit, merged) = project.merge_pages(vec![left, right]).await.unwrap();
+        let (commit, merged) = project
+            .merge_pages(vec![first, second], true)
+            .await
+            .unwrap();
         project.record_commit(&commit);
 
         let snapshot = project.snapshot();
@@ -1770,17 +1802,83 @@ mod tests {
             .text_group()
             .unwrap()
             .unwrap();
-        assert_eq!(snapshot.parent(right_layer).unwrap(), Some(group.id()));
-        // The right page's region is translated by the left page's width.
-        let region = snapshot
-            .component::<SceneGeometry>(region)
+        assert_eq!(snapshot.parent(second_layer).unwrap(), Some(group.id()));
+        // NeKoharu spreads read right to left: the first page lands on the
+        // right half, so its region is translated by the second page's width
+        // while the second page's region stays at the origin.
+        let first_region = snapshot
+            .component::<SceneGeometry>(first_region)
             .unwrap()
             .unwrap();
-        assert_eq!(region.points[0].x, 2.0);
+        assert_eq!(first_region.points[0].x, 4.0);
+        let second_region = snapshot
+            .component::<SceneGeometry>(second_region)
+            .unwrap()
+            .unwrap();
+        assert_eq!(second_region.points[0].x, 0.0);
 
         // Undo restores the two source pages.
         project.undo().await.unwrap();
         assert_eq!(Project::pages(&project.snapshot()).unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn merging_can_keep_the_original_pages() {
+        let mut session = Session::memory().await.unwrap();
+        let source = AssetRole::new("source").unwrap();
+        let mut setup = session.snapshot().edit();
+        let first = setup
+            .add_page(PageDraft::new("first", 2.0, 3.0), At::End)
+            .unwrap();
+        let second = setup
+            .add_page(PageDraft::new("second", 4.0, 3.0), At::End)
+            .unwrap();
+        for (page, width, height) in [(first, 2u32, 3u32), (second, 4u32, 3u32)] {
+            let image = RgbaImage::from_pixel(width, height, image::Rgba([0, 0, 0, 255]));
+            let mut encoded = Cursor::new(Vec::new());
+            DynamicImage::ImageRgba8(image)
+                .write_to(&mut encoded, ImageFormat::Png)
+                .unwrap();
+            setup
+                .set_asset(
+                    page,
+                    &source,
+                    AssetInput::new(
+                        Arc::<[u8]>::from(encoded.into_inner()),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(width),
+                            height: Some(height),
+                            attributes: Default::default(),
+                        },
+                    ),
+                )
+                .unwrap();
+        }
+        let layout = SceneTextLayout {
+            origin: Origin::User,
+            kind: TextLayoutKind::Point,
+            angle_degrees: None,
+        };
+        let first_content = setup.add_text_content(first, At::End).unwrap();
+        let first_layer = setup
+            .add_text_layer(first, At::End, first_content, &layout)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (commit, merged) = project
+            .merge_pages(vec![first, second], false)
+            .await
+            .unwrap();
+        project.record_commit(&commit);
+
+        let snapshot = project.snapshot();
+        // Both source pages survive next to the new spread.
+        assert_eq!(Project::pages(&snapshot).unwrap().len(), 3);
+        // Their layers still moved onto the merged page.
+        let group = snapshot.parent(first_layer).unwrap().unwrap();
+        assert_eq!(snapshot.parent(group).unwrap(), Some(merged));
     }
 
     #[test]
