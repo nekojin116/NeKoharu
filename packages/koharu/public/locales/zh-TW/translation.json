@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "筆刷顏色",
     "hexCode": "十六進位色彩代碼",
+    "recent": "最近使用的色彩",
+    "recentColor": "最近使用的色彩 {{color}}",
     "sampleCanvas": "從畫布選取色彩",
     "transparent": "透明"
   },
@@ -80,12 +82,15 @@
     "activeFilterCount": "{{count}} 個啟用的篩選條件",
     "activeFilterCount_one": "{{count}} 個啟用的篩選條件",
     "activeFilterCount_other": "{{count}} 個啟用的篩選條件",
+    "addFavorite": "將{{family}}加入收藏",
+    "allFonts": "所有字型",
     "allPurposes": "所有用途",
     "allScripts": "所有文字系統",
     "allSources": "所有來源",
     "allStyles": "所有樣式",
     "choose": "選擇字型",
     "clearFilters": "清除篩選條件",
+    "favorites": "收藏",
     "filter": "篩選字型",
     "filterActiveLabel": "篩選字型，已啟用 {{count}} 個",
     "fontCount": "{{count}} 種字型",
@@ -95,6 +100,7 @@
     "fonts": "字型",
     "noResults": "沒有符合此搜尋的字型",
     "purpose": "用途",
+    "removeFavorite": "從收藏中移除{{family}}",
     "script": "文字系統",
     "scripts": {
       "arab": "阿拉伯文",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "複製選取的文字圖層",
     "delete": "刪除 {{name}}",
     "edit": "編輯 {{name}}",
     "empty": "此頁面沒有圖層。",
@@ -237,6 +244,7 @@
     "moveUp": "上移 {{name}}",
     "opacityLabel": "{{name}} 不透明度",
     "originalArtwork": "原始圖稿",
+    "pasteCopied": "貼上已複製的文字圖層",
     "show": "顯示 {{name}}",
     "sourceLabel": "{{name}} 的原文",
     "textName": "文字 {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "編輯",
     "export": "匯出專案",
+    "exportSelectedPages": "匯出選取頁面",
     "file": "檔案",
     "fit": "適應視窗",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 的操作",
+    "mergeAsSpread": "合併為跨頁",
+    "chapterStart": "章節開始",
     "delete": "刪除",
     "emptyDescription": "匯入影像檔案或資料夾以新增頁面。",
     "emptyTitle": "尚無頁面",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}} 個圖層",
     "layerCount_one": "{{count}} 個圖層",
     "layerCount_other": "{{count}} 個圖層",
+    "markChapterStart": "標記為章節開始",
+    "removeChapterStart": "移除章節開始標記",
     "noImage": "無影像",
     "noResults": "沒有符合此篩選條件的頁面。",
     "pageName": "頁面名稱",
@@ -362,6 +375,15 @@
       "title": "外觀"
     },
     "backToEditor": "返回編輯器",
+    "features": {
+      "title": "NeKoharu 功能",
+      "description": "NeKoharu 分支專屬選項。",
+      "pages": "頁面",
+      "mergeDeleteOriginals": "合併後刪除原始頁面",
+      "mergeDeleteOriginalsDescription": "頁面合併為跨頁後刪除原始頁面。關閉時，原始頁面會保留，只有文字和清理圖層會移動到跨頁。",
+      "showPageNumbers": "顯示頁碼",
+      "showPageNumbersDescription": "在頁面欄中每個頁面名稱下方顯示其位置編號。"
+    },
     "generation": {
       "description": "微調語言模型產生譯文的方式。",
       "enableReasoning": "啟用推理",
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "外觀",
+      "features": "NeKoharu 功能",
       "pipeline": "流程",
       "providers": "提供者",
       "shortcuts": "快捷鍵",
@@ -436,10 +459,14 @@
     },
     "title": "設定",
     "translation": {
+      "batching": "請求批次處理",
+      "combinePages": "將頁面合併為一個請求",
+      "combinePagesDescription": "一次翻譯所選數量的連續頁面，以保持名稱與劇情一致。多頁請求僅使用文字，不會包含頁面影像。",
       "description": "選擇任一已設定提供者的模型，然後套用一組共用的翻譯和產生選項。",
       "instructionsDescription": "關於名稱、語氣、術語或格式的說明。",
       "instructionsLabel": "翻譯說明",
       "instructionsPlaceholder": "選用的專案層級說明",
+      "maxPagesPerRequest": "每個請求的最大頁數",
       "model": "模型",
       "modelDescription": "提供者標籤表示各模型的執行位置；連線需另行設定。",
       "modelQuantization": "模型量化",

@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "브러시 색상",
     "hexCode": "16진수 색상 코드",
+    "recent": "최근 색상",
+    "recentColor": "최근 색상 {{color}}",
     "sampleCanvas": "캔버스에서 색상 선택",
     "transparent": "투명"
   },
@@ -80,12 +82,15 @@
     "activeFilterCount": "활성 필터 {{count}}개",
     "activeFilterCount_one": "활성 필터 {{count}}개",
     "activeFilterCount_other": "활성 필터 {{count}}개",
+    "addFavorite": "{{family}}즐겨찾기에 추가",
+    "allFonts": "모든 글꼴",
     "allPurposes": "모든 용도",
     "allScripts": "모든 문자 체계",
     "allSources": "모든 출처",
     "allStyles": "모든 스타일",
     "choose": "글꼴 선택",
     "clearFilters": "필터 지우기",
+    "favorites": "즐겨찾기",
     "filter": "글꼴 필터링",
     "filterActiveLabel": "글꼴 필터링, {{count}}개 활성",
     "fontCount": "글꼴 {{count}}개",
@@ -95,6 +100,7 @@
     "fonts": "글꼴",
     "noResults": "검색과 일치하는 글꼴이 없습니다",
     "purpose": "용도",
+    "removeFavorite": "즐겨찾기에서 {{family}} 제거",
     "script": "문자 체계",
     "scripts": {
       "arab": "아랍 문자",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "선택한 텍스트 레이어 복사",
     "delete": "{{name}} 삭제",
     "edit": "{{name}} 편집",
     "empty": "이 페이지에는 레이어가 없습니다.",
@@ -237,6 +244,7 @@
     "moveUp": "{{name}} 위로 이동",
     "opacityLabel": "{{name}} 불투명도",
     "originalArtwork": "원본 아트워크",
+    "pasteCopied": "복사한 텍스트 레이어 붙여넣기",
     "show": "{{name}} 표시",
     "sourceLabel": "{{name}} 원문",
     "textName": "텍스트 {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "편집",
     "export": "프로젝트 내보내기",
+    "exportSelectedPages": "선택한 페이지 내보내기",
     "file": "파일",
     "fit": "창에 맞춤",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 작업",
+    "mergeAsSpread": "양면 페이지로 병합",
+    "chapterStart": "챕터 시작",
     "delete": "삭제",
     "emptyDescription": "이미지 파일이나 폴더를 가져와 페이지를 추가하세요.",
     "emptyTitle": "아직 페이지가 없습니다",
@@ -294,6 +305,8 @@
     "layerCount": "레이어 {{count}}개",
     "layerCount_one": "레이어 {{count}}개",
     "layerCount_other": "레이어 {{count}}개",
+    "markChapterStart": "챕터 시작으로 표시",
+    "removeChapterStart": "챕터 시작 표시 제거",
     "noImage": "이미지 없음",
     "noResults": "필터와 일치하는 페이지가 없습니다.",
     "pageName": "페이지 이름",
@@ -362,6 +375,15 @@
       "title": "모양"
     },
     "backToEditor": "편집기로 돌아가기",
+    "features": {
+      "title": "NeKoharu 기능",
+      "description": "NeKoharu 포크 전용 옵션입니다.",
+      "pages": "페이지",
+      "mergeDeleteOriginals": "병합 후 원본 페이지 삭제",
+      "mergeDeleteOriginalsDescription": "페이지를 맞춤으로 병합한 후 원본 페이지를 삭제합니다. 꺼져 있으면 원본 페이지가 유지되고 텍스트 및 정리 레이어만 맞춤으로 이동합니다.",
+      "showPageNumbers": "페이지 번호 표시",
+      "showPageNumbersDescription": "페이지 레일에서 각 페이지 이름 아래에 위치 번호를 표시합니다."
+    },
     "generation": {
       "description": "언어 모델이 번역문을 생성하는 방식을 조정합니다.",
       "enableReasoning": "추론 활성화",
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "모양",
+      "features": "NeKoharu 기능",
       "pipeline": "파이프라인",
       "providers": "제공자",
       "shortcuts": "단축키",
@@ -436,10 +459,14 @@
     },
     "title": "설정",
     "translation": {
+      "batching": "요청 묶음",
+      "combinePages": "페이지를 하나의 요청으로 묶기",
+      "combinePagesDescription": "선택한 페이지 수만큼 함께 번역하여 이름과 줄거리의 일관성을 유지합니다. 여러 페이지 요청에는 텍스트만 사용되며 페이지 이미지는 포함되지 않습니다.",
       "description": "설정된 제공자의 모델을 선택하고 공통 번역 및 생성 옵션을 적용합니다.",
       "instructionsDescription": "이름, 어조, 용어 또는 서식 지침입니다.",
       "instructionsLabel": "번역 지침",
       "instructionsPlaceholder": "프로젝트 전체에 적용할 선택적 지침",
+      "maxPagesPerRequest": "요청당 최대 페이지 수",
       "model": "모델",
       "modelDescription": "제공자 레이블은 각 모델의 실행 위치를 나타내며 연결은 별도로 설정합니다.",
       "modelQuantization": "모델 양자화",

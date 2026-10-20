@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "Color del pincel",
     "hexCode": "Código de color hexadecimal",
+    "recent": "Colores recientes",
+    "recentColor": "Color reciente {{color}}",
     "sampleCanvas": "Elegir un color del lienzo",
     "transparent": "Transparente"
   },
@@ -80,12 +82,15 @@
     "activeFilterCount": "{{count}} filtros activos",
     "activeFilterCount_one": "{{count}} filtro activo",
     "activeFilterCount_other": "{{count}} filtros activos",
+    "addFavorite": "Agregar {{family}} a favoritos",
+    "allFonts": "Todas las fuentes",
     "allPurposes": "Todos los usos",
     "allScripts": "Todos los sistemas de escritura",
     "allSources": "Todos los orígenes",
     "allStyles": "Todos los estilos",
     "choose": "Elegir una fuente",
     "clearFilters": "Borrar filtros",
+    "favorites": "Favoritos",
     "filter": "Filtrar fuentes",
     "filterActiveLabel": "Filtrar fuentes, {{count}} activos",
     "fontCount": "{{count}} fuentes",
@@ -95,6 +100,7 @@
     "fonts": "Fuentes",
     "noResults": "Ninguna fuente coincide con esta búsqueda",
     "purpose": "Uso",
+    "removeFavorite": "Quitar {{family}} de favoritos",
     "script": "Sistema de escritura",
     "scripts": {
       "arab": "Árabe",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "Copiar capas de texto seleccionadas",
     "delete": "Eliminar {{name}}",
     "edit": "Editar {{name}}",
     "empty": "No hay capas en esta página.",
@@ -237,6 +244,7 @@
     "moveUp": "Mover {{name}} arriba",
     "opacityLabel": "Opacidad de {{name}}",
     "originalArtwork": "Ilustración original",
+    "pasteCopied": "Pegar capas de texto copiadas",
     "show": "Mostrar {{name}}",
     "sourceLabel": "Texto original de {{name}}",
     "textName": "Texto {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "Editar",
     "export": "Exportar proyecto",
+    "exportSelectedPages": "Exportar páginas seleccionadas",
     "file": "Archivo",
     "fit": "Ajustar a la ventana",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "Acciones para {{page}}",
+    "mergeAsSpread": "Combinar en una página doble",
+    "chapterStart": "Inicio del capítulo",
     "delete": "Eliminar",
     "emptyDescription": "Importa archivos de imagen o una carpeta para añadir páginas.",
     "emptyTitle": "Aún no hay páginas",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}} capas",
     "layerCount_one": "{{count}} capas",
     "layerCount_other": "{{count}} capas",
+    "markChapterStart": "Marcar como inicio de capítulo",
+    "removeChapterStart": "Quitar marca de inicio del capítulo",
     "noImage": "Sin imagen",
     "noResults": "Ninguna página coincide con este filtro.",
     "pageName": "Nombre de página",
@@ -362,6 +375,15 @@
       "title": "Apariencia"
     },
     "backToEditor": "Volver al editor",
+    "features": {
+      "title": "Funciones de NeKoharu",
+      "description": "Opciones exclusivas del fork NeKoharu.",
+      "pages": "Páginas",
+      "mergeDeleteOriginals": "Eliminar páginas originales al fusionar",
+      "mergeDeleteOriginalsDescription": "Elimina las páginas de origen cuando se fusionan en un pliego. Cuando está desactivado, las originales permanecen en el proyecto y solo sus capas de texto y limpieza se mueven al pliego.",
+      "showPageNumbers": "Mostrar números de página",
+      "showPageNumbersDescription": "Muestra la posición de cada página debajo de su nombre en la tira de páginas."
+    },
     "generation": {
       "description": "Ajusta cómo los modelos de lenguaje generan el texto traducido.",
       "enableReasoning": "Activar razonamiento",
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "Apariencia",
+      "features": "Funciones de NeKoharu",
       "pipeline": "Canalización",
       "providers": "Proveedores",
       "shortcuts": "Atajos",
@@ -436,10 +459,14 @@
     },
     "title": "Ajustes",
     "translation": {
+      "batching": "Agrupación de solicitudes",
+      "combinePages": "Combinar páginas en una solicitud",
+      "combinePagesDescription": "Traduce juntas hasta el número de páginas elegido para mantener la coherencia de nombres y trama. Las solicitudes de varias páginas usan solo texto y no incluyen imágenes.",
       "description": "Elige un modelo de cualquier proveedor configurado y aplica un conjunto compartido de opciones de traducción y generación.",
       "instructionsDescription": "Indicaciones sobre nombres, tono, terminología o formato.",
       "instructionsLabel": "Instrucciones de traducción",
       "instructionsPlaceholder": "Indicaciones opcionales para todo el proyecto",
+      "maxPagesPerRequest": "Máximo de páginas por solicitud",
       "model": "Modelo",
       "modelDescription": "Las etiquetas de proveedor indican dónde se ejecuta cada modelo; las conexiones se configuran por separado.",
       "modelQuantization": "Cuantización del modelo",

@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "Brush color",
     "hexCode": "Hex color code",
+    "recent": "Recent colors",
+    "recentColor": "Recent color {{color}}",
     "sampleCanvas": "Pick color from canvas",
     "transparent": "Transparent"
   },
@@ -80,12 +82,15 @@
     "activeFilterCount": "{{count}} active filters",
     "activeFilterCount_one": "{{count}} active filter",
     "activeFilterCount_other": "{{count}} active filters",
+    "addFavorite": "Add {{family}} to favorites",
+    "allFonts": "All fonts",
     "allPurposes": "All purposes",
     "allScripts": "All scripts",
     "allSources": "All sources",
     "allStyles": "All styles",
     "choose": "Choose a font",
     "clearFilters": "Clear filters",
+    "favorites": "Favorites",
     "filter": "Filter fonts",
     "filterActiveLabel": "Filter fonts, {{count}} active",
     "fontCount": "{{count}} fonts",
@@ -95,6 +100,7 @@
     "fonts": "Fonts",
     "noResults": "No fonts match this search",
     "purpose": "Purpose",
+    "removeFavorite": "Remove {{family}} from favorites",
     "script": "Script",
     "scripts": {
       "arab": "Arabic",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "Copy selected text layers",
     "delete": "Delete {{name}}",
     "edit": "Edit {{name}}",
     "empty": "No layers on this page.",
@@ -237,6 +244,7 @@
     "moveUp": "Move {{name}} up",
     "opacityLabel": "{{name}} opacity",
     "originalArtwork": "Original artwork",
+    "pasteCopied": "Paste copied text layers",
     "show": "Show {{name}}",
     "sourceLabel": "{{name}} source text",
     "textName": "Text {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "Edit",
     "export": "Export Project",
+    "exportSelectedPages": "Export Selected Pages",
     "file": "File",
     "fit": "Fit Window",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "Actions for {{page}}",
+    "mergeAsSpread": "Merge into spread",
+    "chapterStart": "Chapter start",
     "delete": "Delete",
     "emptyDescription": "Import image files or a folder to add pages.",
     "emptyTitle": "No pages yet",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}} layers",
     "layerCount_one": "{{count}} layer",
     "layerCount_other": "{{count}} layers",
+    "markChapterStart": "Mark as chapter start",
+    "removeChapterStart": "Remove chapter start marker",
     "noImage": "No image",
     "noResults": "No pages match this filter.",
     "pageName": "Page name",
@@ -362,6 +375,15 @@
       "title": "Appearance"
     },
     "backToEditor": "Back to editor",
+    "features": {
+      "title": "NeKoharu Features",
+      "description": "Options exclusive to the NeKoharu fork.",
+      "pages": "Pages",
+      "mergeDeleteOriginals": "Delete original pages after merging",
+      "mergeDeleteOriginalsDescription": "Removes the source pages after they merge into a spread. When off, the originals stay in the project and only their text and cleanup layers move to the spread.",
+      "showPageNumbers": "Show page numbers",
+      "showPageNumbersDescription": "Shows each page's position under its name in the page rail."
+    },
     "generation": {
       "description": "Fine-tune how language models generate translated text.",
       "enableReasoning": "Enable reasoning",
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "Appearance",
+      "features": "NeKoharu Features",
       "pipeline": "Pipeline",
       "providers": "Providers",
       "shortcuts": "Shortcuts",
@@ -436,10 +459,14 @@
     },
     "title": "Settings",
     "translation": {
+      "batching": "Request batching",
+      "combinePages": "Combine pages in one request",
+      "combinePagesDescription": "Translate up to the selected number of pages together for consistent names and plot. Multi-page requests use text only and do not include page images.",
       "description": "Choose any configured provider model, then apply one shared set of translation and generation options.",
       "instructionsDescription": "Names, tone, terminology, or formatting guidance.",
       "instructionsLabel": "Translation instructions",
       "instructionsPlaceholder": "Optional project-wide guidance",
+      "maxPagesPerRequest": "Maximum pages per request",
       "model": "Model",
       "modelDescription": "Provider labels identify where each model runs; connections are configured separately.",
       "modelQuantization": "Model quantization",

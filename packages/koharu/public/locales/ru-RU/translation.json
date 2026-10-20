@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "Цвет кисти",
     "hexCode": "Шестнадцатеричный код цвета",
+    "recent": "Недавние цвета",
+    "recentColor": "Недавний цвет {{color}}",
     "sampleCanvas": "Выбрать цвет с холста",
     "transparent": "Прозрачный"
   },
@@ -80,12 +82,15 @@
     "activeFilterCount": "Активных фильтров: {{count}}",
     "activeFilterCount_one": "Активный фильтр: {{count}}",
     "activeFilterCount_other": "Активных фильтров: {{count}}",
+    "addFavorite": "Добавить {{family}} в избранное",
+    "allFonts": "Все шрифты",
     "allPurposes": "Все назначения",
     "allScripts": "Все системы письма",
     "allSources": "Все источники",
     "allStyles": "Все стили",
     "choose": "Выбрать шрифт",
     "clearFilters": "Очистить фильтры",
+    "favorites": "Избранное",
     "filter": "Фильтровать шрифты",
     "filterActiveLabel": "Фильтровать шрифты, активно: {{count}}",
     "fontCount": "Шрифтов: {{count}}",
@@ -95,6 +100,7 @@
     "fonts": "Шрифты",
     "noResults": "Нет шрифтов, соответствующих поиску",
     "purpose": "Назначение",
+    "removeFavorite": "Удалить {{family}} из избранного",
     "script": "Система письма",
     "scripts": {
       "arab": "Арабское письмо",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "Копировать выбранные текстовые слои",
     "delete": "Удалить {{name}}",
     "edit": "Изменить {{name}}",
     "empty": "На этой странице нет слоёв.",
@@ -237,6 +244,7 @@
     "moveUp": "Переместить {{name}} вверх",
     "opacityLabel": "Непрозрачность {{name}}",
     "originalArtwork": "Исходное изображение",
+    "pasteCopied": "Вставить скопированные текстовые слои",
     "show": "Показать {{name}}",
     "sourceLabel": "Исходный текст {{name}}",
     "textName": "Текст {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "Правка",
     "export": "Экспорт проекта",
+    "exportSelectedPages": "Экспорт выбранных страниц",
     "file": "Файл",
     "fit": "Вписать в окно",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "Действия для {{page}}",
+    "mergeAsSpread": "Объединить в разворот",
+    "chapterStart": "Начало главы",
     "delete": "Удалить",
     "emptyDescription": "Импортируйте изображения или папку, чтобы добавить страницы.",
     "emptyTitle": "Страниц пока нет",
@@ -294,6 +305,8 @@
     "layerCount": "Слоёв: {{count}}",
     "layerCount_one": "Слоёв: {{count}}",
     "layerCount_other": "Слоёв: {{count}}",
+    "markChapterStart": "Отметить начало главы",
+    "removeChapterStart": "Убрать отметку начала главы",
     "noImage": "Нет изображения",
     "noResults": "Нет страниц, соответствующих фильтру.",
     "pageName": "Название страницы",
@@ -362,6 +375,15 @@
       "title": "Оформление"
     },
     "backToEditor": "Вернуться в редактор",
+    "features": {
+      "title": "Функции NeKoharu",
+      "description": "Эксклюзивные опции форка NeKoharu.",
+      "pages": "Страницы",
+      "mergeDeleteOriginals": "Удалять исходные страницы после объединения",
+      "mergeDeleteOriginalsDescription": "Удаляет исходные страницы после объединения их в разворот. Когда выключено, исходные страницы остаются в проекте, и только их текстовые и очищающие слои переходят в разворот.",
+      "showPageNumbers": "Показывать номера страниц",
+      "showPageNumbersDescription": "Показывает позицию каждой страницы под её именем в ленте страниц."
+    },
     "generation": {
       "description": "Настройте генерацию переведённого текста языковыми моделями.",
       "enableReasoning": "Включить рассуждение",
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "Оформление",
+      "features": "Функции NeKoharu",
       "pipeline": "Конвейер",
       "providers": "Провайдеры",
       "shortcuts": "Сочетания клавиш",
@@ -436,10 +459,14 @@
     },
     "title": "Настройки",
     "translation": {
+      "batching": "Объединение запросов",
+      "combinePages": "Объединять страницы в один запрос",
+      "combinePagesDescription": "Переводить вместе выбранное число страниц, чтобы сохранить единообразие имён и сюжета. Запросы для нескольких страниц используют только текст, без изображений страниц.",
       "description": "Выберите модель настроенного провайдера и примените общие параметры перевода и генерации.",
       "instructionsDescription": "Указания по именам, тону, терминологии или форматированию.",
       "instructionsLabel": "Инструкции по переводу",
       "instructionsPlaceholder": "Необязательные указания для всего проекта",
+      "maxPagesPerRequest": "Максимум страниц на запрос",
       "model": "Модель",
       "modelDescription": "Метки провайдеров показывают, где работает модель; подключения настраиваются отдельно.",
       "modelQuantization": "Квантование модели",

@@ -1,4 +1,9 @@
-use std::{collections::HashSet, io::Cursor, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    io::Cursor,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use anyhow::{Context as _, Result, anyhow, bail};
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -9,7 +14,8 @@ use koharu_scene::{
     Presents, RasterLayer as SceneRasterLayer, RasterLayerKind, Region as SceneRegion,
     RemovePolicy, Revision, Session, Snapshot, SourceText as SceneSourceText,
     TextGroup as SceneTextGroup, TextLayout as SceneTextLayout, TextLayoutKind,
-    Translation as SceneTranslation, Typography as SceneTypography, Visibility as SceneVisibility,
+    TextRole as SceneTextRole, Translation as SceneTranslation, Typography as SceneTypography,
+    Visibility as SceneVisibility,
 };
 use serde::Serialize;
 use specta::Type;
@@ -52,6 +58,7 @@ pub struct PageSummary {
     pub label: String,
     pub size: PageSize,
     pub source_asset: Option<String>,
+    pub chapter_start: bool,
     #[specta(type = f64)]
     pub layer_count: usize,
 }
@@ -345,6 +352,7 @@ impl Project {
                         height: value.height,
                     },
                     source_asset,
+                    chapter_start: value.chapter_start,
                     layer_count,
                 })
             })
@@ -355,7 +363,28 @@ impl Project {
         let snapshot = self.snapshot();
         let current = snapshot.page(page)?.page()?;
         let patch = snapshot.patch(|edit| {
-            edit.set_page(page, PageDraft::new(label, current.width, current.height))
+            edit.set_page(
+                page,
+                PageDraft::new(label, current.width, current.height)
+                    .with_chapter_start(current.chapter_start),
+            )
+        })?;
+        self.commit(patch).await
+    }
+
+    pub(crate) async fn set_page_chapter_start(
+        &mut self,
+        page: EntityId,
+        chapter_start: bool,
+    ) -> Result<Commit> {
+        let snapshot = self.snapshot();
+        let current = snapshot.page(page)?.page()?;
+        let patch = snapshot.patch(|edit| {
+            edit.set_page(
+                page,
+                PageDraft::new(current.label, current.width, current.height)
+                    .with_chapter_start(chapter_start),
+            )
         })?;
         self.commit(patch).await
     }
@@ -378,6 +407,246 @@ impl Project {
         let at = Self::placement(&siblings, page, index);
         let patch = snapshot.patch(|edit| edit.move_entity(page, None, at))?;
         self.commit(patch).await
+    }
+
+    /// Combines an adjacent run of pages into one wide spread page. NeKoharu
+    /// diverges from upstream here: manga reads right to left, so the run's
+    /// first page lands on the right half of the spread and every later page is
+    /// placed to its left. Source and cleanup pixels follow those offsets while
+    /// every child layer, text group, translation, and analysis region is
+    /// re-parented under the merged page with the offset pages translated by the
+    /// accumulated width of the pages to their right. Relations are document
+    /// scoped, so moving the entities keeps `Presents`, `RecognizedFrom`,
+    /// `FitsTo`, `FlowsIn`, and `Inside` intact rather than rebuilding text
+    /// content from scratch. When `delete_originals` is false the source pages
+    /// stay in the project as image-only pages, their layers having moved to the
+    /// spread.
+    pub(crate) async fn merge_pages(
+        &mut self,
+        pages: Vec<EntityId>,
+        delete_originals: bool,
+    ) -> Result<(Commit, EntityId)> {
+        let snapshot = self.snapshot();
+        let order = snapshot.pages().map(|page| page.id()).collect::<Vec<_>>();
+        let pages = Self::contiguous_run(&order, pages)?;
+        let source_role = AssetRole::new("source")?;
+
+        // Read every page-sized image before building the patch, because blob
+        // reads are asynchronous while the scene edit itself is synchronous.
+        let mut offsets = Vec::with_capacity(pages.len());
+        let mut widths = Vec::with_capacity(pages.len());
+        let mut source_images = Vec::with_capacity(pages.len());
+        let mut total_width = 0u32;
+        let mut total_height = 0u32;
+        for &page in &pages {
+            let value = snapshot.page(page)?.page()?;
+            let width = value.width.round().max(1.0) as u32;
+            let height = value.height.round().max(1.0) as u32;
+            widths.push(width);
+            offsets.push(total_width);
+            total_width = total_width
+                .checked_add(width)
+                .context("the merged page is too wide")?;
+            total_height = total_height.max(height);
+            let asset = snapshot
+                .asset(page, &source_role)?
+                .with_context(|| format!("page {page} has no source image to merge"))?;
+            source_images.push(snapshot.read_blob(asset.blob).await?);
+        }
+        // Manga reads right to left: each page sits at the far right of the
+        // pages that follow it, which is the total width minus the end of its
+        // original left-to-right slot.
+        offsets = offsets
+            .into_iter()
+            .zip(&widths)
+            .map(|(offset, &width)| total_width - offset - width)
+            .collect();
+        if total_width > MAX_MERGE_DIMENSION || total_height > MAX_MERGE_DIMENSION {
+            bail!("the merged page is larger than Koharu supports");
+        }
+
+        // Cleanup and paint layers are full-page pixel layers, so the renderer
+        // stretches them across the spread. Re-pad each to the merged width so its
+        // pixels stay in the correct half.
+        let mut raster_blobs = Vec::new();
+        for (index, &page) in pages.iter().enumerate() {
+            for child in snapshot.children(page)? {
+                if snapshot.component::<SceneRasterLayer>(child)?.is_none() {
+                    continue;
+                }
+                if let Some(asset) = snapshot.asset(child, &source_role)? {
+                    raster_blobs.push((
+                        child,
+                        offsets[index],
+                        snapshot.read_blob(asset.blob).await?,
+                    ));
+                }
+            }
+        }
+
+        let compose_offsets = offsets.clone();
+        let (merged_source, raster_assets) =
+            tokio::task::spawn_blocking(move || -> Result<MergedSpread> {
+                let decoded = source_images
+                    .iter()
+                    .map(|bytes| Ok(image::load_from_memory(bytes)?.to_rgba8()))
+                    .collect::<Result<Vec<_>>>()?;
+                let merged = compose_row(
+                    decoded
+                        .iter()
+                        .zip(&compose_offsets)
+                        .map(|(image, offset)| (i64::from(*offset), image)),
+                    total_width,
+                    total_height,
+                );
+                let merged_source = encode_png(merged)?;
+                let mut rasters = HashMap::new();
+                for (layer, offset, bytes) in raster_blobs {
+                    let image = image::load_from_memory(&bytes)?.to_rgba8();
+                    let padded = compose_row(
+                        std::iter::once((i64::from(offset), &image)),
+                        total_width,
+                        total_height,
+                    );
+                    rasters.insert(layer, encode_png(padded)?);
+                }
+                Ok((merged_source, rasters))
+            })
+            .await??;
+
+        let first = pages[0];
+        let first_page = snapshot.page(first)?.page()?;
+        let label = first_page.label;
+        let chapter_start = first_page.chapter_start;
+        let mut target_group = None;
+        for &page in &pages {
+            if let Some(group) = snapshot.page(page)?.text_group()? {
+                target_group = Some(group.id());
+                break;
+            }
+        }
+
+        let width = f64::from(total_width);
+        let height = f64::from(total_height);
+        let mut merged_page = None;
+        let patch = snapshot.patch(|edit| {
+            let merged = edit.add_page(
+                PageDraft::new(label.clone(), width, height).with_chapter_start(chapter_start),
+                At::Before(first),
+            )?;
+            merged_page = Some(merged);
+            edit.set_asset(
+                merged,
+                &source_role,
+                AssetInput::new(
+                    Arc::clone(&merged_source),
+                    "image/png",
+                    AssetMetadata {
+                        width: Some(total_width),
+                        height: Some(total_height),
+                        attributes: Default::default(),
+                    },
+                ),
+            )?;
+
+            // Adopt one source page's text group as the merged page's single text
+            // group; a page may only own one, so the others are emptied instead.
+            if let Some(group) = target_group {
+                edit.move_entity(group, Some(merged), At::End)?;
+            }
+
+            let mut roots = Vec::new();
+            for (&page, &offset) in pages.iter().zip(&offsets) {
+                for child in snapshot.children(page)? {
+                    if Some(child) == target_group {
+                        continue;
+                    }
+                    if snapshot.component::<SceneTextGroup>(child)?.is_some() {
+                        let group = target_group
+                            .expect("a merged text group exists when text layers are present");
+                        for layer in snapshot.children(child)? {
+                            roots.push((layer, group, f64::from(offset)));
+                        }
+                    } else {
+                        roots.push((child, merged, f64::from(offset)));
+                    }
+                }
+            }
+            for (root, parent, offset) in roots {
+                edit.move_entity(root, Some(parent), At::End)?;
+                for entity in snapshot.subtree(root)? {
+                    let id = entity.id();
+                    if let Some(asset) = raster_assets.get(&id) {
+                        edit.set_asset(
+                            id,
+                            &source_role,
+                            AssetInput::new(
+                                Arc::clone(asset),
+                                "image/png",
+                                AssetMetadata {
+                                    width: Some(total_width),
+                                    height: Some(total_height),
+                                    attributes: Default::default(),
+                                },
+                            ),
+                        )?;
+                    }
+                    if offset == 0.0 {
+                        continue;
+                    }
+                    if let Some(geometry) = snapshot.component::<SceneGeometry>(id)? {
+                        edit.set(
+                            id,
+                            &SceneGeometry {
+                                origin: geometry.origin,
+                                points: geometry
+                                    .points
+                                    .into_iter()
+                                    .map(|point| ScenePoint {
+                                        x: point.x + offset,
+                                        y: point.y,
+                                    })
+                                    .collect(),
+                            },
+                        )?;
+                    }
+                }
+            }
+
+            if delete_originals {
+                for &page in &pages {
+                    edit.remove_entity(page, RemovePolicy::Cascade)?;
+                }
+            }
+            Ok(())
+        })?;
+        let merged = merged_page.context("the merged page was not created")?;
+        let commit = self.commit(patch).await?;
+        Ok((commit, merged))
+    }
+
+    /// Selects a run of unique, in-project pages, requires them to be adjacent in
+    /// reading order, and returns them left to right.
+    fn contiguous_run(order: &[EntityId], pages: Vec<EntityId>) -> Result<Vec<EntityId>> {
+        let mut selected = pages;
+        selected.sort_unstable();
+        selected.dedup();
+        if selected.len() < 2 {
+            bail!("merging a spread needs at least two pages");
+        }
+        let mut indices = Vec::with_capacity(selected.len());
+        for page in &selected {
+            let index = order
+                .iter()
+                .position(|candidate| candidate == page)
+                .with_context(|| format!("page {page} does not belong to this project"))?;
+            indices.push(index);
+        }
+        indices.sort_unstable();
+        if indices.windows(2).any(|window| window[1] != window[0] + 1) {
+            bail!("only adjacent pages can be merged into a spread");
+        }
+        Ok(indices.into_iter().map(|index| order[index]).collect())
     }
 
     pub(crate) async fn add_point_text(
@@ -412,6 +681,86 @@ impl Project {
         frame: Frame,
     ) -> Result<(Commit, EntityId)> {
         self.add_text(page, frame, TextLayoutKind::Paragraph).await
+    }
+
+    pub(crate) async fn paste_text_layers(
+        &mut self,
+        page: EntityId,
+        layers: Vec<EntityId>,
+    ) -> Result<(Commit, Vec<EntityId>)> {
+        let snapshot = self.snapshot();
+        snapshot.page(page)?;
+        let mut seen = HashSet::new();
+        let layers = layers
+            .into_iter()
+            .filter(|layer| seen.insert(*layer))
+            .collect::<Vec<_>>();
+        if layers.is_empty() {
+            bail!("at least one text layer is required");
+        }
+
+        let mut added = Vec::with_capacity(layers.len());
+        let patch = snapshot.patch(|edit| {
+            for source_layer in &layers {
+                let source = snapshot.text_layer(*source_layer)?;
+                let content = source.content()?;
+                let mut layout = source.layout()?;
+                layout.origin = Origin::User;
+                let mut geometry = source.frame()?;
+                if let Some(geometry) = &mut geometry {
+                    geometry.origin = Origin::User;
+                }
+                let mut typography = source.typography()?;
+                if let Some(typography) = &mut typography {
+                    if !matches!(typography.origin, Origin::User) {
+                        // A pipeline-inferred direction describes the original's
+                        // source text; the user-owned copy must render by its own
+                        // text instead of inheriting it as an authored override.
+                        typography.writing_mode = None;
+                    }
+                    typography.origin = Origin::User;
+                }
+                let mut visibility = source.visibility()?.unwrap_or(SceneVisibility {
+                    origin: Origin::User,
+                    visible: true,
+                    opacity: 1.0,
+                });
+                visibility.origin = Origin::User;
+                let source_text = content.source()?;
+                let translation = content.translation()?;
+                let role = content.role()?;
+
+                let copied_content = edit.add_text_content(page, At::End)?;
+                if let Some(mut source_text) = source_text {
+                    source_text.text.origin = Origin::User;
+                    edit.set(copied_content, &source_text)?;
+                }
+                if let Some(mut translation) = translation {
+                    translation.text.origin = Origin::User;
+                    edit.set(copied_content, &translation)?;
+                }
+                if let Some(role) = role {
+                    edit.set(
+                        copied_content,
+                        &SceneTextRole {
+                            origin: Origin::User,
+                            role: role.role,
+                        },
+                    )?;
+                }
+                let copied_layer = edit.add_text_layer(page, At::End, copied_content, &layout)?;
+                if let Some(geometry) = geometry {
+                    edit.set(copied_layer, &geometry)?;
+                }
+                if let Some(typography) = typography {
+                    edit.set(copied_layer, &typography)?;
+                }
+                edit.set(copied_layer, &visibility)?;
+                added.push(copied_layer);
+            }
+            Ok(())
+        })?;
+        Ok((self.commit(patch).await?, added))
     }
 
     async fn add_text(
@@ -1263,6 +1612,36 @@ fn validate_project_name(name: &str) -> Result<String> {
     Ok(name.to_owned())
 }
 
+/// Upper bound for a composed spread. Matches the renderer surface limit so a
+/// merged page is always renderable.
+const MAX_MERGE_DIMENSION: u32 = 32_768;
+
+/// Composed spread PNG plus each cleanup/paint layer's re-padded PNG, keyed by
+/// layer.
+type MergedSpread = (Arc<[u8]>, HashMap<EntityId, Arc<[u8]>>);
+
+/// Paints the given images into one transparent canvas at the supplied horizontal
+/// offsets, top aligned.
+fn compose_row<'a>(
+    fragments: impl IntoIterator<Item = (i64, &'a RgbaImage)>,
+    width: u32,
+    height: u32,
+) -> RgbaImage {
+    let mut canvas = RgbaImage::new(width, height);
+    for (offset, image) in fragments {
+        image::imageops::overlay(&mut canvas, image, offset, 0);
+    }
+    canvas
+}
+
+fn encode_png(image: RgbaImage) -> Result<Arc<[u8]>> {
+    let mut encoded = Cursor::new(Vec::new());
+    DynamicImage::ImageRgba8(image)
+        .write_to(&mut encoded, ImageFormat::Png)
+        .context("failed to encode a merged page image")?;
+    Ok(Arc::from(encoded.into_inner()))
+}
+
 fn rasterize_stroke(
     image: &mut RgbaImage,
     mode: RasterStrokeMode,
@@ -1336,6 +1715,172 @@ mod tests {
 
     use super::*;
 
+    #[tokio::test]
+    async fn merging_adjacent_pages_composes_a_wide_spread_and_keeps_layers() {
+        let mut session = Session::memory().await.unwrap();
+        let source = AssetRole::new("source").unwrap();
+        let mut setup = session.snapshot().edit();
+        let first = setup
+            .add_page(PageDraft::new("first", 2.0, 3.0), At::End)
+            .unwrap();
+        let second = setup
+            .add_page(PageDraft::new("second", 4.0, 3.0), At::End)
+            .unwrap();
+        for (page, width, height) in [(first, 2u32, 3u32), (second, 4u32, 3u32)] {
+            let image = RgbaImage::from_pixel(width, height, image::Rgba([0, 0, 0, 255]));
+            let mut encoded = Cursor::new(Vec::new());
+            DynamicImage::ImageRgba8(image)
+                .write_to(&mut encoded, ImageFormat::Png)
+                .unwrap();
+            setup
+                .set_asset(
+                    page,
+                    &source,
+                    AssetInput::new(
+                        Arc::<[u8]>::from(encoded.into_inner()),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(width),
+                            height: Some(height),
+                            attributes: Default::default(),
+                        },
+                    ),
+                )
+                .unwrap();
+        }
+
+        let layout = SceneTextLayout {
+            origin: Origin::User,
+            kind: TextLayoutKind::Point,
+            angle_degrees: None,
+        };
+        let first_content = setup.add_text_content(first, At::End).unwrap();
+        setup
+            .add_text_layer(first, At::End, first_content, &layout)
+            .unwrap();
+        let second_content = setup.add_text_content(second, At::End).unwrap();
+        let second_layer = setup
+            .add_text_layer(second, At::End, second_content, &layout)
+            .unwrap();
+        let first_region = setup
+            .add_analysis_region::<koharu_scene::PanelRegion>(
+                first,
+                At::End,
+                &SceneGeometry::rectangle(0.0, 0.0, 2.0, 2.0),
+                None,
+            )
+            .unwrap();
+        let second_region = setup
+            .add_analysis_region::<koharu_scene::PanelRegion>(
+                second,
+                At::End,
+                &SceneGeometry::rectangle(0.0, 0.0, 2.0, 2.0),
+                None,
+            )
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (commit, merged) = project
+            .merge_pages(vec![first, second], true)
+            .await
+            .unwrap();
+        project.record_commit(&commit);
+
+        let snapshot = project.snapshot();
+        let view = snapshot.page(merged).unwrap().page().unwrap();
+        assert_eq!((view.width, view.height), (6.0, 3.0));
+        assert_eq!(Project::pages(&snapshot).unwrap().len(), 1);
+        // Text layers from both pages survive under the single merged text group.
+        assert_eq!(
+            snapshot.entities_with::<SceneTextLayout>().unwrap().count(),
+            2
+        );
+        let group = snapshot
+            .page(merged)
+            .unwrap()
+            .text_group()
+            .unwrap()
+            .unwrap();
+        assert_eq!(snapshot.parent(second_layer).unwrap(), Some(group.id()));
+        // NeKoharu spreads read right to left: the first page lands on the
+        // right half, so its region is translated by the second page's width
+        // while the second page's region stays at the origin.
+        let first_region = snapshot
+            .component::<SceneGeometry>(first_region)
+            .unwrap()
+            .unwrap();
+        assert_eq!(first_region.points[0].x, 4.0);
+        let second_region = snapshot
+            .component::<SceneGeometry>(second_region)
+            .unwrap()
+            .unwrap();
+        assert_eq!(second_region.points[0].x, 0.0);
+
+        // Undo restores the two source pages.
+        project.undo().await.unwrap();
+        assert_eq!(Project::pages(&project.snapshot()).unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn merging_can_keep_the_original_pages() {
+        let mut session = Session::memory().await.unwrap();
+        let source = AssetRole::new("source").unwrap();
+        let mut setup = session.snapshot().edit();
+        let first = setup
+            .add_page(PageDraft::new("first", 2.0, 3.0), At::End)
+            .unwrap();
+        let second = setup
+            .add_page(PageDraft::new("second", 4.0, 3.0), At::End)
+            .unwrap();
+        for (page, width, height) in [(first, 2u32, 3u32), (second, 4u32, 3u32)] {
+            let image = RgbaImage::from_pixel(width, height, image::Rgba([0, 0, 0, 255]));
+            let mut encoded = Cursor::new(Vec::new());
+            DynamicImage::ImageRgba8(image)
+                .write_to(&mut encoded, ImageFormat::Png)
+                .unwrap();
+            setup
+                .set_asset(
+                    page,
+                    &source,
+                    AssetInput::new(
+                        Arc::<[u8]>::from(encoded.into_inner()),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(width),
+                            height: Some(height),
+                            attributes: Default::default(),
+                        },
+                    ),
+                )
+                .unwrap();
+        }
+        let layout = SceneTextLayout {
+            origin: Origin::User,
+            kind: TextLayoutKind::Point,
+            angle_degrees: None,
+        };
+        let first_content = setup.add_text_content(first, At::End).unwrap();
+        let first_layer = setup
+            .add_text_layer(first, At::End, first_content, &layout)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (commit, merged) = project
+            .merge_pages(vec![first, second], false)
+            .await
+            .unwrap();
+        project.record_commit(&commit);
+
+        let snapshot = project.snapshot();
+        // Both source pages survive next to the new spread.
+        assert_eq!(Project::pages(&snapshot).unwrap().len(), 3);
+        // Their layers still moved onto the merged page.
+        let group = snapshot.parent(first_layer).unwrap().unwrap();
+        assert_eq!(snapshot.parent(group).unwrap(), Some(merged));
+    }
+
     #[test]
     fn only_user_authored_direction_is_projected_as_an_override() {
         let mut typography = SceneTypography {
@@ -1364,6 +1909,292 @@ mod tests {
             Project::typography_view(typography).writing_mode,
             Some(WritingMode::Vertical)
         );
+    }
+
+    #[tokio::test]
+    async fn chapter_start_markers_are_projected_and_survive_page_renames() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let page = setup
+            .add_page(PageDraft::new("chapter start", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        project.set_page_chapter_start(page, true).await.unwrap();
+        assert!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .first()
+                .unwrap()
+                .chapter_start
+        );
+
+        project
+            .rename_page(page, "renamed chapter".to_owned())
+            .await
+            .unwrap();
+        let summary = Project::pages(&project.snapshot()).unwrap();
+        assert_eq!(summary[0].label, "renamed chapter");
+        assert!(summary[0].chapter_start);
+    }
+
+    #[tokio::test]
+    async fn moving_pages_uses_the_destination_index_after_removing_the_source() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let first = setup
+            .add_page(PageDraft::new("first", 100.0, 100.0), At::End)
+            .unwrap();
+        setup
+            .add_page(PageDraft::new("middle", 100.0, 100.0), At::End)
+            .unwrap();
+        let last = setup
+            .add_page(PageDraft::new("last", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        project.move_page(first, 2).await.unwrap();
+        assert_eq!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .iter()
+                .map(|page| page.label.as_str())
+                .collect::<Vec<_>>(),
+            ["middle", "last", "first"]
+        );
+
+        project.move_page(last, 0).await.unwrap();
+        assert_eq!(
+            Project::pages(&project.snapshot())
+                .unwrap()
+                .iter()
+                .map(|page| page.label.as_str())
+                .collect::<Vec<_>>(),
+            ["last", "middle", "first"]
+        );
+    }
+
+    #[tokio::test]
+    async fn pastes_text_layer_content_and_placement_to_another_page() {
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let source_page = setup
+            .add_page(PageDraft::new("source", 100.0, 100.0), At::End)
+            .unwrap();
+        let target_page = setup
+            .add_page(PageDraft::new("target", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (_, source_layer) = project
+            .add_text_box(
+                source_page,
+                Frame {
+                    x: 12.0,
+                    y: 24.0,
+                    width: 32.0,
+                    height: 18.0,
+                    angle_degrees: 0.0,
+                },
+            )
+            .await
+            .unwrap();
+        project
+            .set_source_text(source_layer, "BOOM".to_owned())
+            .await
+            .unwrap();
+        project
+            .set_translation(source_layer, Some("Bang!".to_owned()))
+            .await
+            .unwrap();
+
+        let (_, pasted) = project
+            .paste_text_layers(target_page, vec![source_layer])
+            .await
+            .unwrap();
+        let target = Project::page(&project.snapshot(), target_page).unwrap();
+        let Some(Layer::Text {
+            id,
+            geometry,
+            content,
+            ..
+        }) = target
+            .layers
+            .iter()
+            .find(|layer| matches!(layer, Layer::Text { .. }))
+        else {
+            panic!("expected a pasted text layer");
+        };
+        assert_eq!(pasted, vec![*id]);
+        assert_ne!(*id, source_layer);
+        assert_eq!(
+            content.source.as_ref().map(|source| source.text.as_str()),
+            Some("BOOM")
+        );
+        assert_eq!(
+            content
+                .translation
+                .as_ref()
+                .map(|translation| translation.text.as_str()),
+            Some("Bang!")
+        );
+        assert_eq!(
+            geometry.as_ref().map(|geometry| geometry.points[0].x),
+            Some(12.0)
+        );
+        assert_eq!(
+            geometry.as_ref().map(|geometry| geometry.points[0].y),
+            Some(24.0)
+        );
+        assert!(matches!(
+            target.layers.first(),
+            Some(Layer::Group {
+                role: Some(GroupRole::Text),
+                ..
+            })
+        ));
+    }
+
+    #[tokio::test]
+    async fn pasted_copies_only_keep_user_authored_writing_direction() {
+        use koharu_scene::{BubbleRegion, FlowsIn};
+
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let page = setup
+            .add_page(PageDraft::new("page", 200.0, 300.0), At::End)
+            .unwrap();
+        let bubble = setup
+            .add_analysis_region::<BubbleRegion>(
+                page,
+                At::End,
+                &SceneGeometry::rectangle(20.0, 20.0, 160.0, 180.0),
+                None,
+            )
+            .unwrap();
+        let pipeline_content = setup.add_text_content(page, At::End).unwrap();
+        let pipeline_layer = setup
+            .add_text_layer(
+                page,
+                At::End,
+                pipeline_content,
+                &SceneTextLayout {
+                    origin: Origin::User,
+                    kind: TextLayoutKind::Paragraph,
+                    angle_degrees: None,
+                },
+            )
+            .unwrap();
+        setup.relate::<FlowsIn>(pipeline_layer, bubble).unwrap();
+
+        let user_content = setup.add_text_content(page, At::End).unwrap();
+        let user_layer = setup
+            .add_text_layer(
+                page,
+                At::End,
+                user_content,
+                &SceneTextLayout {
+                    origin: Origin::User,
+                    kind: TextLayoutKind::Paragraph,
+                    angle_degrees: None,
+                },
+            )
+            .unwrap();
+        setup
+            .set(
+                user_layer,
+                &SceneTypography {
+                    origin: Origin::User,
+                    preferred_font: None,
+                    font_weight: None,
+                    font_style: None,
+                    size: Some(30.0),
+                    auto_fit: false,
+                    color: None,
+                    stroke_color: None,
+                    stroke_width: None,
+                    alignment: None,
+                    writing_mode: Some(WritingMode::Vertical),
+                    extensions: Default::default(),
+                },
+            )
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+
+        // Detection writes its inferred direction as pipeline output; user
+        // edits stamp components as theirs, so this must be a pipeline edit.
+        let generation = Generation::new(
+            ProducerId::new("dev.koharu.pipeline.detection").expect("valid producer"),
+        );
+        let mut detection = session.snapshot().edit_as(generation.clone());
+        detection
+            .set(
+                pipeline_layer,
+                &SceneTypography {
+                    origin: Origin::Generated(generation),
+                    preferred_font: None,
+                    font_weight: None,
+                    font_style: None,
+                    size: None,
+                    auto_fit: true,
+                    color: Some([12, 34, 56, u8::MAX]),
+                    stroke_color: None,
+                    stroke_width: None,
+                    alignment: None,
+                    writing_mode: Some(WritingMode::Vertical),
+                    extensions: Default::default(),
+                },
+            )
+            .unwrap();
+        session.commit(detection.finish().unwrap()).await.unwrap();
+
+        let mut project = Project::new(session, "test".to_owned());
+        project
+            .set_source_text(pipeline_layer, "ハズカシイ".to_owned())
+            .await
+            .unwrap();
+        project
+            .set_translation(
+                pipeline_layer,
+                Some("I THINK HUMILIATION SCENARIOS ARE TRENDING".to_owned()),
+            )
+            .await
+            .unwrap();
+        project
+            .set_source_text(user_layer, "カタカナ".to_owned())
+            .await
+            .unwrap();
+        project
+            .set_translation(user_layer, Some("Vertical on purpose".to_owned()))
+            .await
+            .unwrap();
+
+        let (_, pasted) = project
+            .paste_text_layers(page, vec![pipeline_layer, user_layer])
+            .await
+            .unwrap();
+
+        let snapshot = project.snapshot();
+        let pipeline_copy = snapshot
+            .component::<SceneTypography>(pasted[0])
+            .unwrap()
+            .unwrap();
+        // The inference described the original's source text; the copy must
+        // render horizontal English by its own content, like the original does.
+        assert_eq!(pipeline_copy.origin, Origin::User);
+        assert_eq!(pipeline_copy.writing_mode, None);
+        assert_eq!(pipeline_copy.color, Some([12, 34, 56, u8::MAX]));
+
+        let user_copy = snapshot
+            .component::<SceneTypography>(pasted[1])
+            .unwrap()
+            .unwrap();
+        // An explicit user direction is authored intent and survives the copy.
+        assert_eq!(user_copy.origin, Origin::User);
+        assert_eq!(user_copy.writing_mode, Some(WritingMode::Vertical));
     }
 
     #[tokio::test]

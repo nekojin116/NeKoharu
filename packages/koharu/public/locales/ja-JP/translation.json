@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "ブラシカラー",
     "hexCode": "16進カラーコード",
+    "recent": "最近使った色",
+    "recentColor": "最近使った色 {{color}}",
     "sampleCanvas": "キャンバスから色を選択",
     "transparent": "透明"
   },
@@ -80,12 +82,15 @@
     "activeFilterCount": "有効なフィルター: {{count}}件",
     "activeFilterCount_one": "有効なフィルター: {{count}}件",
     "activeFilterCount_other": "有効なフィルター: {{count}}件",
+    "addFavorite": "{{family}}をお気に入りに追加",
+    "allFonts": "すべてのフォント",
     "allPurposes": "すべての用途",
     "allScripts": "すべての文字体系",
     "allSources": "すべての提供元",
     "allStyles": "すべてのスタイル",
     "choose": "フォントを選択",
     "clearFilters": "フィルターをクリア",
+    "favorites": "お気に入り",
     "filter": "フォントを絞り込む",
     "filterActiveLabel": "フォントを絞り込む（{{count}}件有効）",
     "fontCount": "{{count}}個のフォント",
@@ -95,6 +100,7 @@
     "fonts": "フォント",
     "noResults": "この検索に一致するフォントはありません",
     "purpose": "用途",
+    "removeFavorite": "お気に入りから{{family}}を削除",
     "script": "文字体系",
     "scripts": {
       "arab": "アラビア文字",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "選択したテキストレイヤーをコピー",
     "delete": "{{name}}を削除",
     "edit": "{{name}}を編集",
     "empty": "このページにはレイヤーがありません。",
@@ -237,6 +244,7 @@
     "moveUp": "{{name}}を上へ移動",
     "opacityLabel": "{{name}}の不透明度",
     "originalArtwork": "元のアートワーク",
+    "pasteCopied": "コピーしたテキストレイヤーを貼り付け",
     "show": "{{name}}を表示",
     "sourceLabel": "{{name}}の原文",
     "textName": "テキスト {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "編集",
     "export": "プロジェクトを書き出す",
+    "exportSelectedPages": "選択したページを書き出す",
     "file": "ファイル",
     "fit": "ウィンドウに合わせる",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "{{page}}の操作",
+    "mergeAsSpread": "見開きに結合",
+    "chapterStart": "章の開始",
     "delete": "削除",
     "emptyDescription": "画像ファイルまたはフォルダーを読み込んでページを追加します。",
     "emptyTitle": "ページがまだありません",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}}レイヤー",
     "layerCount_one": "{{count}}レイヤー",
     "layerCount_other": "{{count}}レイヤー",
+    "markChapterStart": "章の開始としてマーク",
+    "removeChapterStart": "章の開始マーカーを削除",
     "noImage": "画像なし",
     "noResults": "このフィルターに一致するページはありません。",
     "pageName": "ページ名",
@@ -362,6 +375,15 @@
       "title": "外観"
     },
     "backToEditor": "エディターに戻る",
+    "features": {
+      "title": "NeKoharu 機能",
+      "description": "NeKoharu フォーク限定のオプションです。",
+      "pages": "ページ",
+      "mergeDeleteOriginals": "結合後に元ページを削除",
+      "mergeDeleteOriginalsDescription": "ページを見開きに結合した後、元のページを削除します。オフの場合、元のページは残り、テキストとクリーンアップレイヤーだけが見開きに移動します。",
+      "showPageNumbers": "ページ番号を表示",
+      "showPageNumbersDescription": "ページレールで各ページ名の下に位置番号を表示します。"
+    },
     "generation": {
       "description": "言語モデルによる翻訳文の生成方法を調整します。",
       "enableReasoning": "推論を有効化",
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "外観",
+      "features": "NeKoharu 機能",
       "pipeline": "パイプライン",
       "providers": "プロバイダー",
       "shortcuts": "ショートカット",
@@ -436,10 +459,14 @@
     },
     "title": "設定",
     "translation": {
+      "batching": "リクエストのまとめ方",
+      "combinePages": "ページを1つのリクエストにまとめる",
+      "combinePagesDescription": "選択した枚数までのページをまとめて翻訳し、名前やストーリーの一貫性を保ちます。複数ページのリクエストではテキストのみを使用し、ページ画像は含めません。",
       "description": "設定済みプロバイダーのモデルを選び、共通の翻訳・生成オプションを適用します。",
       "instructionsDescription": "名前、語調、用語、書式に関する指示です。",
       "instructionsLabel": "翻訳指示",
       "instructionsPlaceholder": "プロジェクト全体への任意の指示",
+      "maxPagesPerRequest": "1リクエストあたりの最大ページ数",
       "model": "モデル",
       "modelDescription": "プロバイダー名はモデルの実行場所を示します。接続は別途設定します。",
       "modelQuantization": "モデル量子化",

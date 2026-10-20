@@ -31,6 +31,12 @@ pub struct TypographyUpdate {
     pub typography: Typography,
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "page_renamed",
+    skip_all,
+    fields(origin = "user", character_count = label.chars().count(), empty = label.is_empty()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn rename_page(
@@ -52,6 +58,39 @@ pub(crate) async fn rename_page(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "page_chapter_start_changed",
+    skip_all,
+    fields(origin = "user", chapter_start)
+)]
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn set_page_chapter_start(
+    page: EntityId,
+    chapter_start: bool,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<(), Error> {
+    let (commit, active_page) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let commit = project.set_page_chapter_start(page, chapter_start).await?;
+        project.record_commit(&commit);
+        (commit, project.active_page())
+    };
+    let canvas = synchronize_canvas(&desktop, &commit, active_page).await?;
+    canvas_channel.channel.publish(canvas);
+    Ok(())
+}
+
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "pages_deleted",
+    skip_all,
+    fields(origin = "user", entity_count = pages.len()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn delete_pages(
@@ -73,6 +112,12 @@ pub(crate) async fn delete_pages(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "page_moved",
+    skip_all,
+    fields(origin = "user", page_number = index + 1),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn move_page(
@@ -94,6 +139,40 @@ pub(crate) async fn move_page(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "pages_merged",
+    skip_all,
+    fields(origin = "user", entity_count = pages.len()),
+)]
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn merge_pages(
+    pages: Vec<EntityId>,
+    delete_originals: bool,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<EntityId, Error> {
+    let (commit, merged) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let (commit, merged) = project.merge_pages(pages, delete_originals).await?;
+        project.record_commit(&commit);
+        project.select_page(merged)?;
+        (commit, merged)
+    };
+    let canvas = synchronize_canvas(&desktop, &commit, Some(merged)).await?;
+    canvas_channel.channel.publish(canvas);
+    Ok(merged)
+}
+
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "source_text_edited",
+    skip_all,
+    fields(origin = "user", character_count = text.chars().count(), empty = text.is_empty()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn set_source_text(
@@ -115,6 +194,16 @@ pub(crate) async fn set_source_text(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "translation_edited",
+    skip_all,
+    fields(
+        origin = "user",
+        character_count = text.as_ref().map_or(0, |text| text.chars().count()),
+        empty = text.as_ref().is_none_or(String::is_empty),
+    ),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn set_translation(
@@ -136,6 +225,12 @@ pub(crate) async fn set_translation(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "typography_edited",
+    skip_all,
+    fields(origin = "user", entity_count = updates.len()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn set_typography(
@@ -156,6 +251,12 @@ pub(crate) async fn set_typography(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "geometry_edited",
+    skip_all,
+    fields(origin = "user", entity_count = updates.len()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn set_geometry(
@@ -176,6 +277,12 @@ pub(crate) async fn set_geometry(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "visibility_edited",
+    skip_all,
+    fields(origin = "user", entity_count = layers.len()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn set_visibility(
@@ -198,6 +305,12 @@ pub(crate) async fn set_visibility(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "layers_deleted",
+    skip_all,
+    fields(origin = "user", entity_count = layers.len()),
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn delete_layers(
@@ -218,6 +331,12 @@ pub(crate) async fn delete_layers(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "layer_moved",
+    skip_all,
+    fields(origin = "user", entity_count = 1_u64)
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn move_layer(
@@ -244,6 +363,39 @@ pub(crate) async fn move_layer(
     Ok(view)
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "text_layers_pasted",
+    skip_all,
+    fields(origin = "user", entity_count = layers.len()),
+)]
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn paste_text_layers(
+    layers: Vec<EntityId>,
+    page: EntityId,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<Vec<EntityId>, Error> {
+    let (commit, added) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let (commit, added) = project.paste_text_layers(page, layers).await?;
+        project.record_commit(&commit);
+        (commit, added)
+    };
+    let canvas = synchronize_canvas(&desktop, &commit, Some(page)).await?;
+    canvas_channel.channel.publish(canvas);
+    Ok(added)
+}
+
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "undo",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn undo(
@@ -263,6 +415,12 @@ pub(crate) async fn undo(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "redo",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn redo(
