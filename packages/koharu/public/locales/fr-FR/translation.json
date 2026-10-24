@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "Couleur du pinceau",
     "hexCode": "Code couleur hexadécimal",
+    "recent": "Couleurs récentes",
+    "recentColor": "Couleur récente {{color}}",
     "sampleCanvas": "Prélever une couleur sur le canevas",
     "transparent": "Transparent"
   },
@@ -80,12 +82,16 @@
     "activeFilterCount": "{{count}} filtres actifs",
     "activeFilterCount_one": "{{count}} filtre actif",
     "activeFilterCount_other": "{{count}} filtres actifs",
+    "addFavorite": "Ajouter {{family}} aux favoris",
+    "allFonts": "Toutes les polices",
     "allPurposes": "Tous les usages",
     "allScripts": "Toutes les écritures",
     "allSources": "Toutes les sources",
     "allStyles": "Tous les styles",
     "choose": "Choisir une police",
     "clearFilters": "Effacer les filtres",
+    "favorites": "Favoris",
+    "removeFavorite": "Retirer {{family}} des favoris",
     "filter": "Filtrer les polices",
     "filterActiveLabel": "Filtrer les polices, {{count}} actif(s)",
     "fontCount": "{{count}} polices",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "Copier les calques de texte sélectionnés",
     "delete": "Supprimer {{name}}",
     "edit": "Modifier {{name}}",
     "empty": "Aucun calque sur cette page.",
@@ -237,6 +244,7 @@
     "moveUp": "Monter {{name}}",
     "opacityLabel": "Opacité de {{name}}",
     "originalArtwork": "Image originale",
+    "pasteCopied": "Coller les calques de texte copiés",
     "show": "Afficher {{name}}",
     "sourceLabel": "Texte source de {{name}}",
     "textName": "Texte {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "Édition",
     "export": "Exporter le projet",
+    "exportSelectedPages": "Exporter les pages sélectionnées",
     "file": "Fichier",
     "fit": "Ajuster à la fenêtre",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "Actions pour {{page}}",
+    "mergeAsSpread": "Fusionner en double page",
+    "chapterStart": "Début du chapitre",
     "delete": "Supprimer",
     "emptyDescription": "Importez des fichiers image ou un dossier pour ajouter des pages.",
     "emptyTitle": "Aucune page pour l’instant",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}} calques",
     "layerCount_one": "{{count}} calque",
     "layerCount_other": "{{count}} calques",
+    "markChapterStart": "Marquer comme début de chapitre",
+    "removeChapterStart": "Retirer le marqueur de début de chapitre",
     "noImage": "Aucune image",
     "noResults": "Aucune page ne correspond à ce filtre.",
     "pageName": "Nom de la page",
@@ -360,6 +373,15 @@
         "system": "Système"
       },
       "title": "Apparence"
+    },
+    "features": {
+      "description": "Options exclusives au fork NeKoharu.",
+      "mergeDeleteOriginals": "Supprimer les pages d’origine après la fusion",
+      "mergeDeleteOriginalsDescription": "Supprime les pages sources après leur fusion en double page. Lorsque cette option est désactivée, les originaux restent dans le projet et seuls leurs calques de texte et de nettoyage passent sur la double page.",
+      "pages": "Pages",
+      "showPageNumbers": "Afficher les numéros de page",
+      "showPageNumbersDescription": "Affiche la position de chaque page sous son nom dans le rail des pages.",
+      "title": "Fonctionnalités NeKoharu"
     },
     "backToEditor": "Retour à l’éditeur",
     "generation": {
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "Apparence",
+      "features": "Fonctionnalités NeKoharu",
       "pipeline": "Pipeline",
       "providers": "Fournisseurs",
       "shortcuts": "Raccourcis",
@@ -436,10 +459,14 @@
     },
     "title": "Paramètres",
     "translation": {
+      "batching": "Regroupement des requêtes",
+      "combinePages": "Combiner les pages en une seule requête",
+      "combinePagesDescription": "Traduisez ensemble jusqu’au nombre de pages sélectionné pour des noms et une intrigue cohérents. Les requêtes multipages utilisent uniquement le texte et n’incluent pas les images des pages.",
       "description": "Choisissez le modèle de n’importe quel fournisseur configuré, puis appliquez un ensemble commun d’options de traduction et de génération.",
       "instructionsDescription": "Indications sur les noms, le ton, la terminologie ou la mise en forme.",
       "instructionsLabel": "Instructions de traduction",
       "instructionsPlaceholder": "Indications facultatives pour tout le projet",
+      "maxPagesPerRequest": "Nombre maximal de pages par requête",
       "model": "Modèle",
       "modelDescription": "Les libellés de fournisseur indiquent où chaque modèle s’exécute ; les connexions se configurent séparément.",
       "modelQuantization": "Quantification du modèle",

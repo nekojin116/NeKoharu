@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "لون الفرشاة",
     "hexCode": "رمز اللون الست عشري",
+    "recent": "الألوان الأخيرة",
+    "recentColor": "اللون الأخير {{color}}",
     "sampleCanvas": "اختيار لون من اللوحة",
     "transparent": "شفاف"
   },
@@ -80,12 +82,16 @@
     "activeFilterCount": "{{count}} مرشّحات نشطة",
     "activeFilterCount_one": "{{count}} مرشّح نشط",
     "activeFilterCount_other": "{{count}} مرشّح نشط",
+    "addFavorite": "أضف {{family}} إلى المفضّلة",
+    "allFonts": "كل الخطوط",
     "allPurposes": "كل الأغراض",
     "allScripts": "كل الأنظمة الكتابية",
     "allSources": "كل المصادر",
     "allStyles": "كل الأنماط",
     "choose": "اختر خطًا",
     "clearFilters": "مسح المرشّحات",
+    "favorites": "المفضّلة",
+    "removeFavorite": "أزل {{family}} من المفضّلة",
     "filter": "تصفية الخطوط",
     "filterActiveLabel": "تصفية الخطوط، {{count}} نشطة",
     "fontCount": "{{count}} خط",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "نسخ طبقات النص المحدّدة",
     "delete": "حذف {{name}}",
     "edit": "تعديل {{name}}",
     "empty": "لا توجد طبقات في هذه الصفحة.",
@@ -237,6 +244,7 @@
     "moveUp": "نقل {{name}} لأعلى",
     "opacityLabel": "عتامة {{name}}",
     "originalArtwork": "الرسم الأصلي",
+    "pasteCopied": "لصق طبقات النص المنسوخة",
     "show": "إظهار {{name}}",
     "sourceLabel": "النص المصدر لـ {{name}}",
     "textName": "نص {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "تحرير",
     "export": "تصدير المشروع",
+    "exportSelectedPages": "تصدير الصفحات المحدّدة",
     "file": "ملف",
     "fit": "ملاءمة النافذة",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "إجراءات {{page}}",
+    "mergeAsSpread": "دمج في صفحة مزدوجة",
+    "chapterStart": "بداية الفصل",
     "delete": "حذف",
     "emptyDescription": "استورد ملفات صور أو مجلدًا لإضافة صفحات.",
     "emptyTitle": "لا توجد صفحات بعد",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}} من الطبقات",
     "layerCount_one": "{{count}} طبقة",
     "layerCount_other": "{{count}} من الطبقات",
+    "markChapterStart": "وضع علامة بداية الفصل",
+    "removeChapterStart": "إزالة علامة بداية الفصل",
     "noImage": "لا توجد صورة",
     "noResults": "لا توجد صفحات تطابق هذا المرشّح.",
     "pageName": "اسم الصفحة",
@@ -360,6 +373,15 @@
         "system": "النظام"
       },
       "title": "المظهر"
+    },
+    "features": {
+      "description": "خيارات خاصة بنسخة NeKoharu.",
+      "mergeDeleteOriginals": "حذف الصفحات الأصلية بعد الدمج",
+      "mergeDeleteOriginalsDescription": "يزيل الصفحات المصدر بعد دمجها في صفحة مزدوجة. عند إيقافه، تبقى الصفحات الأصلية في المشروع وتنتقل طبقات النص والتنظيف فقط إلى الصفحة المزدوجة.",
+      "pages": "الصفحات",
+      "showPageNumbers": "إظهار أرقام الصفحات",
+      "showPageNumbersDescription": "يعرض موضع كل صفحة أسفل اسمها في شريط الصفحات.",
+      "title": "ميزات NeKoharu"
     },
     "backToEditor": "العودة إلى المحرّر",
     "generation": {
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "المظهر",
+      "features": "ميزات NeKoharu",
       "pipeline": "خط المعالجة",
       "providers": "المزوّدون",
       "shortcuts": "الاختصارات",
@@ -436,10 +459,14 @@
     },
     "title": "الإعدادات",
     "translation": {
+      "batching": "تجميع الطلبات",
+      "combinePages": "دمج الصفحات في طلب واحد",
+      "combinePagesDescription": "ترجمة الصفحات حتى العدد المحدد معًا للحصول على أسماء وحبكة متسقة. تستخدم الطلبات متعددة الصفحات النص فقط ولا تتضمن صور الصفحات.",
       "description": "اختر أي نموذج مزوّد مهيّأ، ثم طبّق مجموعة موحّدة من خيارات الترجمة والتوليد.",
       "instructionsDescription": "إرشادات الأسماء أو النبرة أو المصطلحات أو التنسيق.",
       "instructionsLabel": "تعليمات الترجمة",
       "instructionsPlaceholder": "إرشادات اختيارية على مستوى المشروع",
+      "maxPagesPerRequest": "الحد الأقصى للصفحات في كل طلب",
       "model": "النموذج",
       "modelDescription": "تشير تسميات المزوّد إلى مكان تشغيل كل نموذج؛ وتُهيَّأ الاتصالات بشكل منفصل.",
       "modelQuantization": "تكميم النموذج",

@@ -62,6 +62,8 @@
   "colorPicker": {
     "brushColor": "笔刷颜色",
     "hexCode": "十六进制颜色代码",
+    "recent": "最近用个颜色",
+    "recentColor": "最近用个颜色 {{color}}",
     "sampleCanvas": "从画布浪取颜色",
     "transparent": "透明"
   },
@@ -80,12 +82,16 @@
     "activeFilterCount": "当前启用个筛选条件：{{count}} 个",
     "activeFilterCount_one": "当前启用个筛选条件：{{count}} 个",
     "activeFilterCount_other": "当前启用个筛选条件：{{count}} 个",
+    "addFavorite": "拿 {{family}} 加进收藏",
+    "allFonts": "全部字体",
     "allPurposes": "全部用途",
     "allScripts": "全部文字体系",
     "allSources": "全部来源",
     "allStyles": "全部样式",
     "choose": "选字体",
     "clearFilters": "清除筛选条件",
+    "favorites": "收藏",
+    "removeFavorite": "拿 {{family}} 从收藏里去脱",
     "filter": "筛选字体",
     "filterActiveLabel": "筛选字体，当前启用个筛选条件有 {{count}} 个",
     "fontCount": "{{count}} 种字体",
@@ -216,6 +222,7 @@
     "zh-TW": "繁體中文"
   },
   "layers": {
+    "copySelected": "复制拣中个文本图层",
     "delete": "删除 {{name}}",
     "edit": "编辑 {{name}}",
     "empty": "箇页浪呒没图层。",
@@ -237,6 +244,7 @@
     "moveUp": "拿 {{name}} 移上去一格",
     "opacityLabel": "{{name}} 个不透明度",
     "originalArtwork": "原始图稿",
+    "pasteCopied": "粘贴复制好个文本图层",
     "show": "显示 {{name}}",
     "sourceLabel": "{{name}} 个原文",
     "textName": "文本 {{index}}",
@@ -250,6 +258,7 @@
     "discord": "Discord",
     "edit": "编辑",
     "export": "导出项目",
+    "exportSelectedPages": "导出拣中个页面",
     "file": "文件",
     "fit": "适应窗口",
     "github": "GitHub",
@@ -282,6 +291,8 @@
   },
   "navigator": {
     "actionsFor": "{{page}} 个操作",
+    "mergeAsSpread": "合并成跨页",
+    "chapterStart": "章节开始",
     "delete": "删除",
     "emptyDescription": "要添加页面，先导入图像文件或者文件夹。",
     "emptyTitle": "还呒没页面",
@@ -294,6 +305,8 @@
     "layerCount": "{{count}} 个图层",
     "layerCount_one": "{{count}} 个图层",
     "layerCount_other": "{{count}} 个图层",
+    "markChapterStart": "标记为章节开始",
+    "removeChapterStart": "去掉章节开始标记",
     "noImage": "呒没图像",
     "noResults": "呒没符合箇个筛选条件个页面。",
     "pageName": "页面名称",
@@ -360,6 +373,15 @@
         "system": "系统"
       },
       "title": "外观"
+    },
+    "features": {
+      "description": "NeKoharu 分支独有个选项。",
+      "mergeDeleteOriginals": "合并之后删脱原始页面",
+      "mergeDeleteOriginalsDescription": "页面合并成跨页之后，拿原始页面删脱。关脱之后，原始页面仍旧留勒项目里，只有文字搭清理图层移过去。",
+      "pages": "页面",
+      "showPageNumbers": "显示页码",
+      "showPageNumbersDescription": "勒页面栏里，勒每页名字下头显示伊个位置。",
+      "title": "NeKoharu 功能"
     },
     "backToEditor": "返回编辑器",
     "generation": {
@@ -428,6 +450,7 @@
     },
     "tabs": {
       "appearance": "外观",
+      "features": "NeKoharu 功能",
       "pipeline": "处理流程",
       "providers": "提供商",
       "shortcuts": "快捷键",
@@ -436,10 +459,14 @@
     },
     "title": "设置",
     "translation": {
+      "batching": "请求分批",
+      "combinePages": "拿多页合并成一只请求",
+      "combinePagesDescription": "拿选定个页数一道翻译，保持人名搭情节一致。多页请求只用文字，弗包含页面图片。",
       "description": "先选已经配置好个提供商底下个模型，再设置各个模型共用个翻译搭生成选项。",
       "instructionsDescription": "名字、语气、术语或者格式个说明。",
       "instructionsLabel": "翻译说明",
       "instructionsPlaceholder": "好填整个项目通用个说明，也好弗填",
+      "maxPagesPerRequest": "每只请求最多个页数",
       "model": "模型",
       "modelDescription": "提供商标签标明各个模型来勒啥地方运行；连接要另外配置。",
       "modelQuantization": "模型量化",
