@@ -1,17 +1,17 @@
 <h1 align="center">NeKoharu</h1>
 
-<p align="center">ML-powered manga translator, written in <b>Rust</b> — a community fork of <a href="https://github.com/koharu-rs/koharu">Koharu</a>.</p>
+<p align="center">ML-powered manga translator, written in <b>Rust</b> â€” a community fork of <a href="https://github.com/koharu-rs/koharu">Koharu</a>.</p>
 
 <p align="center">
 <a href="https://github.com/nekojin116/NeKoharu/releases/latest" target="_blank"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/nekojin116/NeKoharu/total?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fnekojin116%2FNeKoharu%2Freleases%2Flatest"></a>
 </p>
 
 <p align="center">
-<a href="https://koharu.rs/en/installation" target="_blank">Getting Started</a> · <a href="https://koharu.rs/" target="_blank">Docs</a> · <a href="https://github.com/nekojin116/NeKoharu/issues" target="_blank">Bug reports</a> · <a href="https://github.com/koharu-rs/koharu" target="_blank">Upstream Koharu</a>
+<a href="https://koharu.rs/en/installation" target="_blank">Getting Started</a> Â· <a href="https://koharu.rs/" target="_blank">Docs</a> Â· <a href="https://github.com/nekojin116/NeKoharu/issues" target="_blank">Bug reports</a> Â· <a href="https://github.com/koharu-rs/koharu" target="_blank">Upstream Koharu</a>
 </p>
 
 <p align="center">
-<a href="https://koharu.rs/ja" target="_blank">日本語</a> | <a href="https://koharu.rs/zh" target="_blank">简体中文</a>
+<a href="https://koharu.rs/ja" target="_blank">æ—¥æœ¬èªž</a> | <a href="https://koharu.rs/zh" target="_blank">ç®€ä½“ä¸­æ–‡</a>
 </p>
 
 Koharu introduces a local-first workflow for manga translation, utilizing the power of ML to automate the process. It combines the capabilities of object detection, OCR, inpainting, and LLMs to create a seamless translation experience.
@@ -28,17 +28,17 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 
 ## Features
 
-- [Multi-format project management](https://koharu.rs/en/guides/projects) for raster images, archives, and PDFs with page sequencing
-- [Selective pipeline](https://koharu.rs/en/guides/processing) for detection, OCR, translation, and inpainting at page or project scope
-- [Detection and segmentation](https://koharu.rs/en/guides/processing) for text regions, speech bubbles, and cleanup regions
-- [Multimodal OCR](https://koharu.rs/en/models/vision) for dialogue, captions, and general page text
-- [Local GGUF inference and hosted providers](https://koharu.rs/en/models/providers) for LLM and machine-translation workflows
-- [Generative inpainting](https://koharu.rs/en/guides/cleanup) for source-text removal and artwork reconstruction
-- [Proofreading](https://koharu.rs/en/guides/review) for correcting OCR and translation output
-- [WebGPU-based canvas](https://koharu.rs/en/guides/canvas) for manual cleanup, text placement, and page composition
-- [Multilingual text shaping and layout](https://koharu.rs/en/guides/typesetting) with automatic fitting, font fallback, vertical CJK, and right-to-left text
-- [Layered PSD export](https://koharu.rs/en/guides/export) for flattened delivery and layered editing
-- [Agent-based workflow](https://koharu.rs/en/agent/projects) for project inspection, editing, and pipeline control
+- [Multi-format project management](https://koharu.rs/guides/projects) for raster images, archives, and PDFs with page sequencing
+- [Selective pipeline](https://koharu.rs/guides/processing) for detection, OCR, translation, and inpainting at page or project scope
+- [Detection and segmentation](https://koharu.rs/guides/processing) for text regions, speech bubbles, and cleanup regions
+- [Multimodal OCR](https://koharu.rs/models/vision) for dialogue, captions, and general page text
+- [Local GGUF inference and hosted providers](https://koharu.rs/models/providers) for LLM and machine-translation workflows
+- [Generative inpainting](https://koharu.rs/guides/cleanup) for source-text removal and artwork reconstruction
+- [Proofreading](https://koharu.rs/guides/review) for correcting OCR and translation output
+- [WebGPU-based canvas](https://koharu.rs/guides/canvas) for manual cleanup, text placement, and page composition
+- [Multilingual text shaping and layout](https://koharu.rs/guides/typesetting) with automatic fitting, font fallback, vertical CJK, and right-to-left text
+- [Layered PSD export](https://koharu.rs/guides/export) for flattened delivery and layered editing
+- [Agent-based workflow](https://koharu.rs/agent/projects) for project inspection, editing, and pipeline control
 
 ## Extra features in NeKoharu
 
@@ -67,7 +67,7 @@ Everything upstream Koharu does, plus:
 
 ## Hardware Acceleration
 
-Koharu supports CUDA and ROCm / HIP on Windows and Linux, Metal on Apple silicon, and Vulkan on Windows and Linux. Keep your graphics driver current; a full CUDA or ROCm SDK installation is not required. See [Runtime and hardware requirements](https://koharu.rs/en/hardware) for model-specific guidance.
+Koharu supports CUDA and ROCm / HIP on Windows and Linux, Metal on Apple silicon, and Vulkan on Windows and Linux. Keep your graphics driver current; a full CUDA or ROCm SDK installation is not required. See [Runtime and hardware requirements](https://koharu.rs/hardware) for model-specific guidance.
 
 ### CUDA
 
@@ -95,7 +95,7 @@ CPU inference is available for supported workloads but is substantially slower.
 
 ## Machine Learning Models
 
-Koharu uses separate models for detection, OCR, inpainting, and translation. [Vision and inpainting](https://koharu.rs/en/models/vision) and [translation and generation](https://koharu.rs/en/models/translation) have separate model settings.
+Koharu uses separate models for detection, OCR, inpainting, and translation. [Vision and inpainting](https://koharu.rs/models/vision) and [translation and generation](https://koharu.rs/models/translation) have separate model settings.
 
 ### Computer Vision Models
 
@@ -170,7 +170,7 @@ NeKoharu releases are self-updating: the in-app updater checks this repository's
 
 ## Troubleshooting
 
-Startup, runtime, model, and provider errors are covered in [Troubleshooting](https://koharu.rs/en/reference/troubleshooting). Set `RUST_LOG` to `debug` or `trace` for verbose logs:
+Startup, runtime, model, and provider errors are covered in [Troubleshooting](https://koharu.rs/reference/troubleshooting). Set `RUST_LOG` to `debug` or `trace` for verbose logs:
 
 ```bash
 # macOS / Linux
@@ -181,7 +181,7 @@ $env:RUST_LOG="debug"; koharu.exe
 
 ## Development
 
-Platform dependencies and validation commands for local builds are listed in [Development Setup](https://koharu.rs/en/development/setup).
+Platform dependencies and validation commands for local builds are listed in [Development Setup](https://koharu.rs/development/setup).
 
 ### Prerequisites
 
@@ -218,7 +218,7 @@ NeKoharu is derived from Koharu. If the project is useful in your workflow, cons
 
 ![sponsors](./.github/sponsorkit/sponsors.svg)
 
-## Contributors ❤️
+## Contributors â¤ï¸
 
 Thanks to all the contributors who have helped make Koharu better, including everyone behind the upstream project:
 

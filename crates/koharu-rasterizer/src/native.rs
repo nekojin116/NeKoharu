@@ -306,7 +306,8 @@ impl Rasterizer {
             let submission = queue.submit([encoder.finish()]);
             (device, submission, target)
         };
-        self.finish_readback(device, submission, target)
+        // Compositor targets are premultiplied; native images expose straight RGBA.
+        self.finish_readback(device, submission, target, true)
     }
 
     fn readback_scene(
@@ -365,7 +366,7 @@ impl Rasterizer {
             let submission = queue.submit([encoder.finish()]);
             (device, submission, target)
         };
-        self.finish_readback(device, submission, target)
+        self.finish_readback(device, submission, target, false)
     }
 
     fn finish_readback(
@@ -373,6 +374,7 @@ impl Rasterizer {
         device: wgpu::Device,
         submission: wgpu::SubmissionIndex,
         target: RenderTarget,
+        premultiplied: bool,
     ) -> AnyResult<Vec<u8>> {
         let width = target.width;
         let height = target.height;
@@ -391,14 +393,32 @@ impl Rasterizer {
             .recv()
             .context("WGPU closed the readback channel")?
             .context("failed to map WGPU readback buffer")?;
-        let mapped = slice.get_mapped_range();
+        let mapped = slice
+            .get_mapped_range()
+            .context("failed to read mapped WGPU readback buffer")?;
         let row_len = (width * 4) as usize;
         let mut pixels = Vec::with_capacity(row_len * height as usize);
         for row in mapped
             .chunks_exact(target.padded_width as usize)
             .take(height as usize)
         {
+            let start = pixels.len();
             pixels.extend_from_slice(&row[..row_len]);
+            if premultiplied {
+                for pixel in pixels[start..].as_chunks_mut::<4>().0 {
+                    match pixel[3] {
+                        0 => pixel.fill(0),
+                        255 => {}
+                        alpha => {
+                            let alpha = u32::from(alpha);
+                            for channel in &mut pixel[..3] {
+                                *channel = ((u32::from(*channel) * 255 + alpha / 2) / alpha)
+                                    .min(255) as u8;
+                            }
+                        }
+                    }
+                }
+            }
         }
         drop(mapped);
         target.readback.unmap();

@@ -179,7 +179,12 @@ export function frameInsideRect(
     const x = centerX + corner.x * cos - corner.y * sin
     const y = centerY + corner.x * sin + corner.y * cos
 
-    return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height
+    return (
+      x >= rect.x &&
+      x <= rect.x + rect.width &&
+      y >= rect.y &&
+      y <= rect.y + rect.height
+    )
   })
 }
 
