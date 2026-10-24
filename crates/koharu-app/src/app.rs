@@ -169,6 +169,7 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
                         Ok(event) => {
                             let download = match event {
                                 koharu_runtime::download::Event::Started { id, name } => {
+                                    tracing::info!(download_id = id, %name, "download activity");
                                     tracing::info!(
                                         target: "koharu_metrics",
                                         metric = "download_start",
@@ -206,6 +207,7 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
                                     }
                                 }
                                 koharu_runtime::download::Event::Finished { id } => {
+                                    tracing::info!(download_id = id, "download activity done");
                                     tracing::info!(
                                         target: "koharu_metrics",
                                         metric = "download_result",
@@ -221,7 +223,25 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
                                         error: None,
                                     }
                                 }
+                                koharu_runtime::download::Event::Cancelled { id } => {
+                                    tracing::info!(download_id = id, "download activity cancelled");
+                                    tracing::info!(
+                                        target: "koharu_metrics",
+                                        metric = "download_result",
+                                        resource = "runtime",
+                                        outcome = "cancelled",
+                                    );
+                                    Download {
+                                        id,
+                                        state: DownloadState::Cancelled,
+                                        name: None,
+                                        completed: 0,
+                                        total: 0,
+                                        error: None,
+                                    }
+                                }
                                 koharu_runtime::download::Event::Failed { id, name, error } => {
+                                    tracing::info!(download_id = id, %name, %error, "download activity failed");
                                     tracing::info!(
                                         target: "koharu_metrics",
                                         metric = "download_result",
@@ -240,10 +260,16 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
                             };
                             let downloads = download_handle.state::<DownloadChannel>();
                             let mut channel = downloads.channel.lock();
-                            if let Some(current) = channel.as_ref()
-                                && current.send(download).is_err()
-                            {
-                                channel.take();
+                            match channel.as_ref() {
+                                Some(current) => {
+                                    if let Err(error) = current.send(download) {
+                                        tracing::warn!(%error, "download channel send failed");
+                                        channel.take();
+                                    }
+                                }
+                                None => {
+                                    tracing::warn!("download event arrived before the frontend subscribed");
+                                }
                             }
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {

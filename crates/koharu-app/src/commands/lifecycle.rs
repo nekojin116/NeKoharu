@@ -92,6 +92,7 @@ pub(crate) struct DownloadChannel {
 pub enum DownloadState {
     Running,
     Finished,
+    Cancelled,
     Failed,
 }
 
@@ -158,6 +159,8 @@ pub(crate) async fn subscribe(
     on_project: Channel<Option<ProjectInfo>>,
 ) -> std::result::Result<StartupState, Error> {
     handle.state::<Initialization>().wait().await?;
+
+    tracing::info!("frontend subscribed to runtime channels");
 
     *handle.state::<CanvasChannel>().channel.lock() = Some(on_canvas);
     *handle.state::<JobChannel>().channel.lock() = Some(on_job);
