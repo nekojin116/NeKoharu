@@ -533,6 +533,7 @@
     "draw": "Brush",
     "eraser": "Eraser",
     "increaseBrushSize": "Increase brush size",
+    "ocr": "OCR",
     "pan": "Pan",
     "remove": "Remove",
     "select": "Select",

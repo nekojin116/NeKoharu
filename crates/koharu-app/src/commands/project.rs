@@ -11,11 +11,11 @@ use koharu_desktop::Frame;
 use koharu_scene::{
     AssetInput, AssetMetadata, AssetRole, At, Authored, Commit, EntityId, EntityOrigin,
     Geometry as SceneGeometry, Group as SceneGroup, Origin, PageDraft, Point as ScenePoint,
-    Presents, RasterLayer as SceneRasterLayer, RasterLayerKind, Region as SceneRegion,
-    RemovePolicy, Revision, Session, Snapshot, SourceText as SceneSourceText,
-    TextGroup as SceneTextGroup, TextLayout as SceneTextLayout, TextLayoutKind,
-    TextRole as SceneTextRole, Translation as SceneTranslation, Typography as SceneTypography,
-    Visibility as SceneVisibility,
+    Presents, RasterLayer as SceneRasterLayer, RasterLayerKind, RecognizedFrom,
+    Region as SceneRegion, RemovePolicy, Revision, Session, Snapshot,
+    SourceText as SceneSourceText, TextGroup as SceneTextGroup, TextLayout as SceneTextLayout,
+    TextLayoutKind, TextRegion, TextRole as SceneTextRole, Translation as SceneTranslation,
+    Typography as SceneTypography, Visibility as SceneVisibility,
 };
 use serde::Serialize;
 use specta::Type;
@@ -681,6 +681,62 @@ impl Project {
         frame: Frame,
     ) -> Result<(Commit, EntityId)> {
         self.add_text(page, frame, TextLayoutKind::Paragraph).await
+    }
+
+    /// Creates a user-drawn text region and its presentation layer. OCR runs
+    /// against the region's `RecognizedFrom` content, so the caller receives the
+    /// region and layer to scope the pipeline to this box alone.
+    pub(crate) async fn add_ocr_box(
+        &mut self,
+        page: EntityId,
+        frame: Frame,
+    ) -> Result<(Commit, EntityId, EntityId)> {
+        let snapshot = self.snapshot();
+        let geometry = Self::geometry_from_frame(frame)?;
+        let mut layer = None;
+        let mut region = None;
+        let patch = snapshot.patch(|edit| {
+            let added_region =
+                edit.add_analysis_region::<TextRegion>(page, At::End, &geometry, None)?;
+            let content = edit.add_text_content(page, At::End)?;
+            edit.relate::<RecognizedFrom>(content, added_region)?;
+            let added_layer = edit.add_text_layer(
+                page,
+                At::End,
+                content,
+                &SceneTextLayout {
+                    origin: Origin::User,
+                    kind: TextLayoutKind::Paragraph,
+                    angle_degrees: Some(frame.angle_degrees),
+                },
+            )?;
+            edit.set(added_layer, &geometry)?;
+            edit.set(
+                added_layer,
+                &SceneTypography {
+                    origin: Origin::User,
+                    preferred_font: None,
+                    font_weight: None,
+                    font_style: None,
+                    size: None,
+                    auto_fit: true,
+                    color: None,
+                    stroke_color: None,
+                    stroke_width: None,
+                    alignment: None,
+                    writing_mode: None,
+                    extensions: Default::default(),
+                },
+            )?;
+            layer = Some(added_layer);
+            region = Some(added_region);
+            Ok(())
+        })?;
+        Ok((
+            self.commit(patch).await?,
+            layer.expect("OCR box layer was added while building the patch"),
+            region.expect("OCR box region was added while building the patch"),
+        ))
     }
 
     pub(crate) async fn paste_text_layers(
@@ -2312,5 +2368,72 @@ mod tests {
             &[ScenePoint { x: 2.0, y: 2.0 }],
         );
         assert_eq!(white.get_pixel(2, 2).0, [255, 255, 255, 255]);
+    }
+
+    #[tokio::test]
+    async fn ocr_box_creates_a_text_region_that_ocr_can_recognize() {
+        use koharu_scene::RegionSpec as _;
+
+        let mut session = Session::memory().await.unwrap();
+        let mut setup = session.snapshot().edit();
+        let page = setup
+            .add_page(PageDraft::new("page", 100.0, 100.0), At::End)
+            .unwrap();
+        session.commit(setup.finish().unwrap()).await.unwrap();
+        let mut project = Project::new(session, "test".to_owned());
+
+        let (_, layer, region) = project
+            .add_ocr_box(
+                page,
+                Frame {
+                    x: 10.0,
+                    y: 20.0,
+                    width: 30.0,
+                    height: 40.0,
+                    angle_degrees: 0.0,
+                },
+            )
+            .await
+            .unwrap();
+
+        let snapshot = project.snapshot();
+        let view = Project::page(&snapshot, page).unwrap();
+        let region_view = view
+            .regions
+            .iter()
+            .find(|candidate| candidate.id == region)
+            .expect("the OCR box creates a region");
+        assert_eq!(region_view.kind, TextRegion::kind().as_str());
+
+        let Some(Layer::Text {
+            id,
+            content,
+            geometry,
+            ..
+        }) = view
+            .layers
+            .iter()
+            .find(|layer| matches!(layer, Layer::Text { .. }))
+        else {
+            panic!("expected an OCR text layer");
+        };
+        assert_eq!(*id, layer);
+        assert!(content.source.is_none());
+        assert_eq!(content.source_region, Some(region));
+        assert_eq!(
+            geometry.as_ref().map(|geometry| geometry.points[0].x),
+            Some(10.0)
+        );
+        // The OCR stage discovers targets through RecognizedFrom on the region.
+        assert_eq!(
+            snapshot
+                .text_content(content.id)
+                .unwrap()
+                .source_region()
+                .unwrap()
+                .unwrap()
+                .id(),
+            region
+        );
     }
 }

@@ -54,6 +54,7 @@ const BRUSH_DIAMETER_STEP = 4
 const canvasCursors = {
   select: undefined,
   text: 'text',
+  ocr: 'crosshair',
   draw: 'none',
   eraser: 'none',
   color_picker: 'crosshair',
@@ -72,6 +73,7 @@ type Gesture =
     }
   | { kind: 'move'; pointer: number; start: Point; originals: TransformFrame[] }
   | { kind: 'text'; pointer: number; start: Point; frame: Frame }
+  | { kind: 'ocr'; pointer: number; start: Point; frame: Frame }
   | StrokeGesture
 
 interface StrokeGesture {
@@ -414,7 +416,7 @@ export function CanvasWorkspace() {
         return
       }
       const next = (
-        ['select', 'text', 'draw', 'eraser', 'color_picker', 'remove', 'pan'] as const
+        ['select', 'text', 'ocr', 'draw', 'eraser', 'color_picker', 'remove', 'pan'] as const
       ).find((action) => state.shortcuts[action] === event.key.toLowerCase())
       if (next) setTool(next, cleanupLayer?.id)
     }
@@ -527,7 +529,7 @@ export function CanvasWorkspace() {
           y: point.y - current.start.y,
         }),
       )
-    } else if (current.kind === 'text') {
+    } else if (current.kind === 'text' || current.kind === 'ocr') {
       current.frame = draftFrame(current.start, point)
       setDraft(current.frame)
     } else if (current.kind === 'paint' || current.kind === 'erase' || current.kind === 'inpaint') {
@@ -572,6 +574,16 @@ export function CanvasWorkspace() {
           ? call(commands.addPointText, current.start)
           : call(commands.addTextBox, current.frame)
       )
+        .then((result) => {
+          selectLayers([result.layer])
+          return refresh(projectKey, pagesKey, pageKey)
+        })
+        .catch(() => undefined)
+    } else if (current.kind === 'ocr') {
+      const { zoom } = useKoharuStore.getState().camera
+      setDraft(null)
+      if (current.frame.width < 4 / zoom || current.frame.height < 4 / zoom) return
+      void call(commands.addOcrBox, current.frame)
         .then((result) => {
           selectLayers([result.layer])
           return refresh(projectKey, pagesKey, pageKey)
@@ -695,6 +707,10 @@ export function CanvasWorkspace() {
             } else if (tool === 'text') {
               const frame = draftFrame(point, point)
               gesture.current = { kind: 'text', pointer: event.pointerId, start: point, frame }
+              setDraft(frame)
+            } else if (tool === 'ocr') {
+              const frame = draftFrame(point, point)
+              gesture.current = { kind: 'ocr', pointer: event.pointerId, start: point, frame }
               setDraft(frame)
             } else if (tool === 'draw') {
               strokeUpdates.clear()

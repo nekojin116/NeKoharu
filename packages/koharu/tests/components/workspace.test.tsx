@@ -604,4 +604,27 @@ describe('canvas interaction adapter', () => {
       angle_degrees: 0,
     })
   })
+
+  it('creates an OCR box on drag and selects its text layer', async () => {
+    installProject()
+    useKoharuStore.setState({ tool: 'ocr' })
+    const add = vi
+      .spyOn(commands, 'addOcrBox')
+      .mockResolvedValue({ revision: 4, layer: 'ocr-text' })
+    const surface = renderWorkspace()
+
+    fireEvent.pointerDown(surface, { button: 0, pointerId: 15, clientX: 40, clientY: 50 })
+    fireEvent.pointerMove(surface, { pointerId: 15, clientX: 140, clientY: 110 })
+    fireEvent.pointerUp(surface, { pointerId: 15, clientX: 140, clientY: 110 })
+
+    await waitFor(() => expect(add).toHaveBeenCalledOnce())
+    expect(add).toHaveBeenCalledWith({
+      x: 30,
+      y: 30,
+      width: 100,
+      height: 60,
+      angle_degrees: 0,
+    })
+    await waitFor(() => expect(useKoharuStore.getState().selectedLayers).toEqual(['ocr-text']))
+  })
 })

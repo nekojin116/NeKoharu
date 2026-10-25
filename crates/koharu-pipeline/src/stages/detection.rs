@@ -102,11 +102,16 @@ impl StageProcessor for Processor {
     fn skip(&self, input: &StageInput) -> Result<bool> {
         for entity in input.scene.descendants(input.page)? {
             let id = entity.id();
-            if input.contains_entity(id)?
-                && entity
-                    .component::<Region>()?
-                    .is_some_and(|region| region.kind == TextRegion::kind())
-            {
+            if !input.contains_entity(id)? {
+                continue;
+            }
+            let generated = entity
+                .component::<EntityOrigin>()?
+                .is_some_and(|origin| !matches!(origin.origin, Origin::User));
+            let is_text_region = entity
+                .component::<Region>()?
+                .is_some_and(|region| region.kind == TextRegion::kind());
+            if generated && is_text_region {
                 return Ok(true);
             }
         }
@@ -1871,6 +1876,42 @@ mod tests {
     #[tokio::test]
     async fn detection_skips_a_page_with_existing_text() {
         let mut session = Session::memory().await.unwrap();
+        let generation = generation(super::PRODUCER, super::MODEL_ID).unwrap();
+        let mut edit = session.snapshot().edit_as(generation);
+        let page = edit
+            .add_page(PageDraft::new("page", 100.0, 100.0), At::End)
+            .unwrap();
+        edit.add_analysis_region::<TextRegion>(
+            page,
+            At::End,
+            &Geometry::rectangle(10.0, 10.0, 20.0, 20.0),
+            None,
+        )
+        .unwrap();
+        let snapshot = session
+            .commit(edit.finish().unwrap())
+            .await
+            .unwrap()
+            .snapshot;
+        let input = StageInput::new(
+            snapshot,
+            page,
+            None,
+            None,
+            std::sync::Arc::new(crate::ImageCache::default()),
+            None,
+        );
+        let processor = Processor::new(
+            DetectionModel::KoharuLayoutRFDetrSeg2XL(KoharuLayoutRFDetrSeg2XLConfig::default()),
+            koharu_ml::Device::cpu(),
+        );
+
+        assert!(processor.skip(&input).unwrap());
+    }
+
+    #[tokio::test]
+    async fn detection_does_not_skip_a_manual_text_region() {
+        let mut session = Session::memory().await.unwrap();
         let mut page = None;
         let patch = session
             .snapshot()
@@ -1901,7 +1942,7 @@ mod tests {
             koharu_ml::Device::cpu(),
         );
 
-        assert!(processor.skip(&input).unwrap());
+        assert!(!processor.skip(&input).unwrap());
     }
 
     #[tokio::test]

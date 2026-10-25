@@ -191,6 +191,47 @@ pub(crate) async fn add_text_box(
 
 #[tauri::command]
 #[specta::specta]
+pub(crate) async fn add_ocr_box(
+    frame: Frame,
+    handle: AppHandle<CefRuntime>,
+    desktop: State<'_, Desktop>,
+    project: State<'_, CurrentProject>,
+    canvas_channel: State<'_, CanvasChannel>,
+) -> Result<LayerCommit, Error> {
+    if !handle.state::<Processing>().stops.lock().is_empty() {
+        return Err(anyhow!("another process is already running").into());
+    }
+    let (commit, page, layer, region) = {
+        let mut project = project.project.lock().await;
+        let project = project.as_mut().context("no project is open")?;
+        let page = project
+            .active_page()
+            .context("the project has no active page")?;
+        let (commit, layer, region) = project.add_ocr_box(page, frame).await?;
+        project.record_commit(&commit);
+        (commit, project.active_page(), layer, region)
+    };
+    desktop.synchronize(&commit.snapshot, page, &commit).await?;
+    canvas_channel.channel.publish(desktop.canvas_state());
+    processing::process(
+        handle.clone(),
+        koharu_pipeline::Scope::Entities(vec![region, layer]),
+        koharu_pipeline::Operation::Only {
+            stage: koharu_pipeline::Stage::Ocr,
+        },
+        handle.state::<CurrentProject>(),
+        handle.state::<Processing>(),
+        handle.state::<JobChannel>(),
+    )
+    .await?;
+    Ok(LayerCommit {
+        revision: commit.revision,
+        layer,
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
 pub(crate) async fn commit_paint(
     expected_revision: Revision,
     layer: Option<EntityId>,

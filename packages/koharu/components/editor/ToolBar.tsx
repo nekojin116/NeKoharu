@@ -8,6 +8,7 @@ import {
   MousePointer2,
   Pipette,
   Plus,
+  ScanText,
   Sparkles,
   Type,
 } from 'lucide-react'
@@ -42,6 +43,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@koharu/ui/components/t
 const tools = [
   ['select', MousePointer2],
   ['text', Type],
+  ['ocr', ScanText],
   ['draw', Brush],
   ['eraser', Eraser],
   ['color_picker', Pipette],
