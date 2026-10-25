@@ -97,6 +97,25 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Build Tauri CLI with the CEF bundling fix
+        # tauri-cli 3.0.0-alpha.5 at the pinned revision still copies the ANGLE
+        # libraries CEF stopped shipping in 154, so every non-macOS bundle
+        # fails. Drop this step once tauri-apps/tauri#16338 is published.
+        shell: bash
+        run: |
+          src="$GITHUB_WORKSPACE/../tauri-cli-src"
+          patch="$RUNNER_TEMP/tauri-cef-no-angle.patch"
+          rm -rf "$src"
+          git init --quiet "$src"
+          git -C "$src" config core.autocrlf false
+          git -C "$src" remote add origin https://github.com/tauri-apps/tauri
+          git -C "$src" fetch --quiet --depth 1 origin 78f49ba3993fed5a1b921235c547731006ad2a74
+          git -C "$src" checkout --quiet FETCH_HEAD
+          # Strip CRLF in case the checkout that produced this file normalized it.
+          tr -d '\r' < "$GITHUB_WORKSPACE/.github/patches/tauri-cef-no-angle.patch" > "$patch"
+          git -C "$src" apply "$patch"
+          cargo install --path "$src/crates/tauri-cli" --locked --force
+
       - name: Fetch upstream tags for changelog boundaries
         # The fork only carries its own tags, so without upstream's tags
         # git-cliff treats the first fork release as the first release ever
