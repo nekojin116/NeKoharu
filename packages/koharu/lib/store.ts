@@ -22,6 +22,7 @@ export type CanvasTool =
   | 'select'
   | 'text'
   | 'ocr'
+  | 'ocr_clean'
   | 'draw'
   | 'eraser'
   | 'color_picker'
@@ -98,6 +99,7 @@ export const defaultShortcuts: Shortcuts = {
   select: 'v',
   text: 't',
   ocr: 'o',
+  ocr_clean: 'k',
   draw: 'b',
   eraser: 'e',
   color_picker: 'i',

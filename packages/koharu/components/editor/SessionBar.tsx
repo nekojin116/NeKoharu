@@ -8,6 +8,7 @@ import { call } from '@/lib/backend'
 import { pageKey, pagesKey, projectKey, refresh, usePage } from '@/lib/queries'
 import { sessionReadOnly, useKoharuStore } from '@/lib/store'
 import { commands, type SessionInfo } from '@koharu/bridge/protocol'
+import { Badge } from '@koharu/ui/components/badge'
 import { Button } from '@koharu/ui/components/button'
 import { Input } from '@koharu/ui/components/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@koharu/ui/components/popover'
@@ -129,7 +130,7 @@ export function SessionMenu() {
         <button
           type='button'
           aria-label={t('session.share')}
-          title={t('session.share')}
+          title={`${t('session.share')} (${t('common.experimental')})`}
           className={triggerClass}
           disabled={!page}
           aria-busy={busy}
@@ -193,6 +194,9 @@ export function SessionMenu() {
             >
               {t(status)}
             </span>
+            <Badge variant='outline' className='ml-auto h-4 px-1.5 text-[9px] font-normal'>
+              {t('common.experimental')}
+            </Badge>
           </div>
           {hosting && session.link && (
             <div

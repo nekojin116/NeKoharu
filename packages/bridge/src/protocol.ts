@@ -54,7 +54,7 @@ export const commands = {
 	getCanvasPageResource: (page: EntityId, revision: Revision, resource: string) => __TAURI_INVOKE<CanvasBytes>("get_canvas_page_resource", { page, revision, resource }),
 	addPointText: (point: Point) => __TAURI_INVOKE<LayerCommit>("add_point_text", { point }),
 	addTextBox: (frame: Frame) => __TAURI_INVOKE<LayerCommit>("add_text_box", { frame }),
-	addOcrBox: (frame: Frame) => __TAURI_INVOKE<LayerCommit>("add_ocr_box", { frame }),
+	addOcrBox: (frame: Frame, cleanup: boolean) => __TAURI_INVOKE<LayerCommit>("add_ocr_box", { frame, cleanup }),
 	commitPaint: (expectedRevision: Revision, layer: EntityId | null, points: Point[], brush: PaintBrush) => __TAURI_INVOKE<LayerCommit>("commit_paint", { expectedRevision, layer, points, brush }),
 	commitErase: (expectedRevision: Revision, layer: EntityId, points: Point[], diameter: number) => __TAURI_INVOKE<LayerCommit>("commit_erase", { expectedRevision, layer, points, diameter }),
 	commitTransform: (expectedRevision: Revision, elements: TransformFrame[]) => __TAURI_INVOKE<Revision | null>("commit_transform", { expectedRevision, elements }),
@@ -64,11 +64,16 @@ export const commands = {
 	 *  the link to give to other users.
 	 */
 	startSession: () => __TAURI_INVOKE<SessionInfo>("start_session"),
-	/**  Stops hosting. The project and its files are untouched. */
+	/**
+	 *  Stops sharing. The link stays reserved for the next share, and the project
+	 *  and its files are untouched.
+	 */
 	stopSession: () => __TAURI_INVOKE<null>("stop_session"),
 	/**
 	 *  Joins someone else's session. The local library is not touched: the project
-	 *  lives on the host and only its replica is held here.
+	 *  lives on the host and only its replica is held here. Joining while already
+	 *  joined is how a guest follows a host whose link changed: the current
+	 *  replica stays until the new link has delivered a project.
 	 */
 	joinSession: (link: string) => __TAURI_INVOKE<SessionInfo>("join_session", { link }),
 	/**  Leaves the joined session and closes the replica. */
@@ -82,9 +87,21 @@ export type Account = {
 	plan: string | null,
 };
 
+export type AgentModel = {
+	id: string,
+	name: string,
+	reasoning: Reasoning[],
+};
+
+export type AgentProvider = {
+	provider: Provider,
+	name: string,
+};
+
 export type AgentStatus = {
 	account: Account | null,
-	models: CodexModel[],
+	providers: AgentProvider[],
+	models: AgentModel[],
 	config: Config,
 	running: RunId | null,
 };
@@ -96,6 +113,12 @@ export type AnalysisRegion = {
 	kind: string,
 	label: string | null,
 };
+
+/**
+ *  The service that drives the agent. A provider backend reuses the
+ *  Chat Completions endpoint and credential owned by `koharu-translator`.
+ */
+export type Backend = { type: "codex" } | { type: "provider"; provider: Provider };
 
 export type Bounds = {
 	x: number,
@@ -125,13 +148,8 @@ export type CanvasState = {
 
 export type ClaudeConfig = Record<string, never>;
 
-export type CodexModel = {
-	id: string,
-	name: string,
-	reasoning: Reasoning[],
-};
-
 export type Config = {
+	backend: Backend,
 	model: string | null,
 	reasoning: Reasoning,
 };

@@ -2,6 +2,7 @@
 
 import {
   Brush,
+  BrushCleaning,
   Eraser,
   Hand,
   Minus,
@@ -45,6 +46,7 @@ const tools = [
   ['select', MousePointer2],
   ['text', Type],
   ['ocr', ScanText],
+  ['ocr_clean', BrushCleaning],
   ['draw', Brush],
   ['eraser', Eraser],
   ['color_picker', Pipette],

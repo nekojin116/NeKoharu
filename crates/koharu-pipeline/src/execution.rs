@@ -52,8 +52,13 @@ impl<'a> Execution<'a> {
             .operation
             .stages()
             .map_err(|error| PipelineError::new(ErrorKind::InvalidInput, None, error))?;
-        let scope = NormalizedScope::new(&snapshot, &request.scope, &stages)
-            .map_err(|error| PipelineError::new(ErrorKind::InvalidInput, None, error))?;
+        let scope = NormalizedScope::new(
+            &snapshot,
+            &request.scope,
+            &stages,
+            request.inpainting_mask.is_some(),
+        )
+        .map_err(|error| PipelineError::new(ErrorKind::InvalidInput, None, error))?;
         let pages = scope.pages().to_vec();
         let translation_batch_size = if stages.contains(&Stage::Translation) {
             runner.translation_batch_size()

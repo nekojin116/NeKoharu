@@ -57,6 +57,7 @@ const canvasCursors = {
   select: undefined,
   text: 'text',
   ocr: 'crosshair',
+  ocr_clean: 'crosshair',
   draw: 'none',
   eraser: 'none',
   color_picker: 'crosshair',
@@ -75,7 +76,7 @@ type Gesture =
     }
   | { kind: 'move'; pointer: number; start: Point; originals: TransformFrame[] }
   | { kind: 'text'; pointer: number; start: Point; frame: Frame }
-  | { kind: 'ocr'; pointer: number; start: Point; frame: Frame }
+  | { kind: 'ocr'; pointer: number; start: Point; frame: Frame; cleanup: boolean }
   | StrokeGesture
 
 interface StrokeGesture {
@@ -420,7 +421,17 @@ export function CanvasWorkspace() {
         return
       }
       const next = (
-        ['select', 'text', 'ocr', 'draw', 'eraser', 'color_picker', 'remove', 'pan'] as const
+        [
+          'select',
+          'text',
+          'ocr',
+          'ocr_clean',
+          'draw',
+          'eraser',
+          'color_picker',
+          'remove',
+          'pan',
+        ] as const
       ).find((action) => state.shortcuts[action] === event.key.toLowerCase())
       if (next) setTool(next, cleanupLayer?.id)
     }
@@ -585,7 +596,7 @@ export function CanvasWorkspace() {
       const { zoom } = useKoharuStore.getState().camera
       setDraft(null)
       if (current.frame.width < 4 / zoom || current.frame.height < 4 / zoom) return
-      void call(commands.addOcrBox, current.frame)
+      void call(commands.addOcrBox, current.frame, current.cleanup)
         .then((result) => {
           selectLayers([result.layer])
           return refresh(projectKey, pagesKey, pageKey)
@@ -719,9 +730,15 @@ export function CanvasWorkspace() {
               const frame = draftFrame(point, point)
               gesture.current = { kind: 'text', pointer: event.pointerId, start: point, frame }
               setDraft(frame)
-            } else if (tool === 'ocr') {
+            } else if (tool === 'ocr' || tool === 'ocr_clean') {
               const frame = draftFrame(point, point)
-              gesture.current = { kind: 'ocr', pointer: event.pointerId, start: point, frame }
+              gesture.current = {
+                kind: 'ocr',
+                pointer: event.pointerId,
+                start: point,
+                frame,
+                cleanup: tool === 'ocr_clean',
+              }
               setDraft(frame)
             } else if (tool === 'draw') {
               strokeUpdates.clear()
