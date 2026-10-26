@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@koharu/ui/components/select'
+import { Switch } from '@koharu/ui/components/switch'
 
 const tabs = [
   ['appearance', Palette],
@@ -248,6 +249,7 @@ function AppearancePreferences() {
   const { theme, setTheme } = useTheme()
   const { t, i18n } = useTranslation()
   const colorTheme = useForkPreferences((state) => state.preferences.colorTheme)
+  const interfaceAnimations = useForkPreferences((state) => state.preferences.interfaceAnimations)
   const setPreference = useForkPreferences((state) => state.setPreference)
   const themes = [
     ['light', Sun],
@@ -325,6 +327,18 @@ function AppearancePreferences() {
                 </span>
               </Button>
             ))}
+          </div>
+        </PreferenceRow>
+        <PreferenceRow
+          title={t('settings.appearance.animations')}
+          description={t('settings.appearance.animationsDescription')}
+        >
+          <div className='flex h-8 items-center justify-end'>
+            <Switch
+              aria-label={t('settings.appearance.animations')}
+              checked={interfaceAnimations}
+              onCheckedChange={(enabled) => setPreference('interfaceAnimations', enabled)}
+            />
           </div>
         </PreferenceRow>
         <PreferenceRow title={t('settings.appearance.language')}>

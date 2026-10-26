@@ -2404,6 +2404,7 @@ describe('greenfield editor', () => {
       mergeDeleteOriginals: true,
       showPageNumbers: true,
       colorTheme: 'koharu',
+      interfaceAnimations: true,
     })
 
     await user.click(screen.getByRole('switch', { name: 'Show page numbers' }))
@@ -2411,7 +2412,7 @@ describe('greenfield editor', () => {
     useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
   })
 
-  it('applies and remembers the color theme chosen in appearance settings', async () => {
+  it('applies and remembers the appearance chosen in settings', async () => {
     window.localStorage.removeItem(FORK_PREFERENCES_STORAGE_KEY)
     useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
     const user = userEvent.setup()
@@ -2422,13 +2423,17 @@ describe('greenfield editor', () => {
       </ThemeProvider>,
     )
 
+    expect(document.documentElement.dataset.motion).toBe('full')
+    await user.click(screen.getByRole('switch', { name: 'Interface animations' }))
+    expect(document.documentElement.dataset.motion).toBe('still')
+
     expect(document.documentElement.dataset.palette).toBe('koharu')
     await user.click(screen.getByRole('radio', { name: 'AniSwipe' }))
     expect(screen.getByRole('radio', { name: 'AniSwipe' })).toHaveAttribute('aria-checked', 'true')
     expect(document.documentElement.dataset.palette).toBe('aniswipe')
     expect(
       JSON.parse(window.localStorage.getItem(FORK_PREFERENCES_STORAGE_KEY) ?? ''),
-    ).toMatchObject({ colorTheme: 'aniswipe' })
+    ).toMatchObject({ colorTheme: 'aniswipe', interfaceAnimations: false })
     useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
   })
 
