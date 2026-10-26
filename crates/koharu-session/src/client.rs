@@ -235,11 +235,7 @@ impl Guest {
         let response = self
             .inner
             .http
-            .get(format!(
-                "{}/v1/blob/{id}",
-                self.inner.origin,
-                id = id.to_string()
-            ))
+            .get(format!("{}/v1/blob/{id}", self.inner.origin))
             .header("authorization", format!("Bearer {}", self.inner.token))
             .send()
             .await
