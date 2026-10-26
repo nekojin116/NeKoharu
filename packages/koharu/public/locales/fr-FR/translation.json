@@ -419,7 +419,11 @@
       "pages": "Pages",
       "showPageNumbers": "Afficher les numéros de page",
       "showPageNumbersDescription": "Affiche la position de chaque page sous son nom dans le rail des pages.",
-      "title": "Fonctionnalités NeKoharu"
+      "title": "Fonctionnalités NeKoharu",
+      "collaboration": "Collaboration",
+      "displayName": "Nom affiché",
+      "displayNameDescription": "Votre nom pour les autres dans une session partagée. Laissez vide pour obtenir un nom aléatoire.",
+      "randomName": "Choisir un nom aléatoire"
     },
     "backToEditor": "Retour à l’éditeur",
     "generation": {

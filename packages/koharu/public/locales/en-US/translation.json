@@ -420,7 +420,11 @@
       "mergeDeleteOriginals": "Delete original pages after merging",
       "mergeDeleteOriginalsDescription": "Removes the source pages after they merge into a spread. When off, the originals stay in the project and only their text and cleanup layers move to the spread.",
       "showPageNumbers": "Show page numbers",
-      "showPageNumbersDescription": "Shows each page's position under its name in the page rail."
+      "showPageNumbersDescription": "Shows each page's position under its name in the page rail.",
+      "collaboration": "Collaboration",
+      "displayName": "Display name",
+      "displayNameDescription": "How you appear to others in a shared session. Leave it empty to get a random name.",
+      "randomName": "Pick a random name"
     },
     "generation": {
       "description": "Fine-tune how language models generate translated text.",

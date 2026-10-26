@@ -115,6 +115,8 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             session::stop_session,
             session::join_session,
             session::leave_session,
+            session::get_session_name,
+            session::set_session_name,
         ])
         .disable_serde_phases()
         .error_handling(ErrorHandlingMode::Throw)

@@ -78,6 +78,13 @@ export const commands = {
 	joinSession: (link: string) => __TAURI_INVOKE<SessionInfo>("join_session", { link }),
 	/**  Leaves the joined session and closes the replica. */
 	leaveSession: () => __TAURI_INVOKE<null>("leave_session"),
+	/**  The name this instance goes by in sessions. */
+	getSessionName: () => __TAURI_INVOKE<string>("get_session_name"),
+	/**
+	 *  Renames this instance and tells a running session at once. A blank name
+	 *  is replaced by a generated one; the name in effect is returned.
+	 */
+	setSessionName: (name: string) => __TAURI_INVOKE<string>("set_session_name", { name }),
 };
 
 /* Types */

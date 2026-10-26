@@ -420,7 +420,11 @@
       "mergeDeleteOriginals": "結合後に元ページを削除",
       "mergeDeleteOriginalsDescription": "ページを見開きに結合した後、元のページを削除します。オフの場合、元のページは残り、テキストとクリーンアップレイヤーだけが見開きに移動します。",
       "showPageNumbers": "ページ番号を表示",
-      "showPageNumbersDescription": "ページレールで各ページ名の下に位置番号を表示します。"
+      "showPageNumbersDescription": "ページレールで各ページ名の下に位置番号を表示します。",
+      "collaboration": "共同作業",
+      "displayName": "表示名",
+      "displayNameDescription": "共有セッションで他の参加者に表示される名前です。空欄にするとランダムな名前になります。",
+      "randomName": "ランダムな名前にする"
     },
     "generation": {
       "description": "言語モデルによる翻訳文の生成方法を調整します。",

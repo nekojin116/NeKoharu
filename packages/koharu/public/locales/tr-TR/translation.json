@@ -420,7 +420,11 @@
       "mergeDeleteOriginals": "Birleştirme sonrası orijinal sayfaları sil",
       "mergeDeleteOriginalsDescription": "Sayfalar bir açılıma birleştirildikten sonra kaynak sayfaları siler. Kapalıyken orijinal sayfalar projede kalır ve yalnızca metin ve temizlik katmanları açılıma taşınır.",
       "showPageNumbers": "Sayfa numaralarını göster",
-      "showPageNumbersDescription": "Sayfa şeridinde her sayfanın adının altındaki konum numarasını gösterir."
+      "showPageNumbersDescription": "Sayfa şeridinde her sayfanın adının altındaki konum numarasını gösterir.",
+      "collaboration": "Ortak çalışma",
+      "displayName": "Görünen ad",
+      "displayNameDescription": "Paylaşılan bir oturumda başkalarına nasıl göründüğünüz. Rastgele bir ad almak için boş bırakın.",
+      "randomName": "Rastgele bir ad seç"
     },
     "generation": {
       "description": "Dil modellerinin çevrilmiş metni nasıl ürettiğini ayarlayın.",

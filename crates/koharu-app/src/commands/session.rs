@@ -79,21 +79,98 @@ fn session_members(members: &[Member], you: Option<u64>) -> Vec<SessionMember> {
         .collect()
 }
 
-/// What this instance tells the other participants about itself: the account
-/// name it runs under, and the page it has open.
+/// The longest display name, in characters; the rest is cut off.
+const NAME_LIMIT: usize = 32;
+
+/// The `session` section of the configuration file.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
+struct SessionConfig {
+    /// What this instance is called in sessions. Never blank once read: an
+    /// empty name is replaced by a generated one, so every participant reads
+    /// as somebody.
+    name: String,
+}
+
+/// Reads the display name, generating and keeping one when there is none.
+fn display_name() -> Result<String> {
+    let config = koharu_config::load::<SessionConfig>("session")?;
+    {
+        let current = config.read()?;
+        if !current.name.trim().is_empty() {
+            return Ok(current.name.clone());
+        }
+    }
+    let mut current = config.write()?;
+    if current.name.trim().is_empty() {
+        current.name = generated_name();
+    }
+    let name = current.name.clone();
+    current.save()?;
+    Ok(name)
+}
+
+/// A random two-word name, such as "Swift Otter".
+fn generated_name() -> String {
+    const ADJECTIVES: [&str; 16] = [
+        "Swift", "Quiet", "Bright", "Brave", "Clever", "Gentle", "Lucky", "Merry", "Nimble",
+        "Sunny", "Calm", "Bold", "Witty", "Cozy", "Keen", "Jolly",
+    ];
+    const ANIMALS: [&str; 16] = [
+        "Otter", "Fox", "Panda", "Heron", "Lynx", "Koala", "Badger", "Falcon", "Hedgehog", "Owl",
+        "Seal", "Rabbit", "Crane", "Tanuki", "Sparrow", "Wolf",
+    ];
+    let bytes = uuid::Uuid::new_v4().into_bytes();
+    let adjective = ADJECTIVES[usize::from(bytes[0]) % ADJECTIVES.len()];
+    let animal = ANIMALS[usize::from(bytes[1]) % ANIMALS.len()];
+    format!("{adjective} {animal}")
+}
+
+/// What this instance tells the other participants about itself: its display
+/// name, and the page it has open.
 pub(crate) fn presence(page: Option<koharu_scene::EntityId>) -> Presence {
-    let name = ["USERNAME", "USER"]
-        .into_iter()
-        .find_map(|key| {
-            std::env::var(key)
-                .ok()
-                .filter(|name| !name.trim().is_empty())
-        })
-        .unwrap_or_default();
+    let name = display_name().unwrap_or_else(|error| {
+        tracing::warn!(%error, "failed to read the session display name");
+        String::new()
+    });
     Presence {
         name,
         page: page.map(|page| page.to_string()),
     }
+}
+
+/// The name this instance goes by in sessions.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_session_name() -> Result<String, Error> {
+    Ok(display_name()?)
+}
+
+/// Renames this instance and tells a running session at once. A blank name
+/// is replaced by a generated one; the name in effect is returned.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn set_session_name(
+    name: String,
+    handle: AppHandle<CefRuntime>,
+) -> Result<String, Error> {
+    let name: String = name.trim().chars().take(NAME_LIMIT).collect();
+    let name = if name.is_empty() {
+        generated_name()
+    } else {
+        name
+    };
+    {
+        let config = koharu_config::load::<SessionConfig>("session")?;
+        let mut current = config.write()?;
+        current.name = name.clone();
+        current.save()?;
+    }
+    let current = handle.state::<CurrentProject>();
+    if let Some(project) = current.project.lock().await.as_ref() {
+        project.present();
+    }
+    Ok(name)
 }
 
 /// The session state the frontend is showing, kept so a late subscriber sees

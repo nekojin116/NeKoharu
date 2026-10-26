@@ -420,7 +420,11 @@
       "mergeDeleteOriginals": "合併後刪除原始頁面",
       "mergeDeleteOriginalsDescription": "頁面合併為跨頁後刪除原始頁面。關閉時，原始頁面會保留，只有文字和清理圖層會移動到跨頁。",
       "showPageNumbers": "顯示頁碼",
-      "showPageNumbersDescription": "在頁面欄中每個頁面名稱下方顯示其位置編號。"
+      "showPageNumbersDescription": "在頁面欄中每個頁面名稱下方顯示其位置編號。",
+      "collaboration": "協作",
+      "displayName": "顯示名稱",
+      "displayNameDescription": "在共享工作階段中其他人看到的名稱。留空將取得一個隨機名稱。",
+      "randomName": "隨機選擇名稱"
     },
     "generation": {
       "description": "微調語言模型產生譯文的方式。",
