@@ -368,6 +368,8 @@
     "copied": "Copiado",
     "copy": "Copiar link",
     "copyFailed": "Não foi possível copiar o link",
+    "guest": "Convidado {{number}}",
+    "host": "Anfitrião",
     "hostOffline": "Anfitrião offline — edição pausada",
     "hosting": "Compartilhando este projeto",
     "join": "Entrar em uma sessão",
@@ -377,8 +379,14 @@
     "leave": "Sair",
     "linkCopied": "Link copiado",
     "linkOffline": "Compartilhamento encerrado",
+    "memberJoined": "{{name}} entrou na sessão",
+    "members": "Nesta sessão",
+    "noPage": "Nenhuma página aberta",
+    "onPage": "Página {{number}}",
+    "onThisPage": "Nesta página: {{names}}",
     "share": "Compartilhar sessão",
-    "stopShare": "Parar compartilhamento"
+    "stopShare": "Parar compartilhamento",
+    "you": "Você"
   },
   "settings": {
     "appearance": {

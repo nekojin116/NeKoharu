@@ -66,6 +66,27 @@ fn decode(value: &str) -> Result<Vec<u8>> {
         .context("session payload is not valid base64")
 }
 
+/// The peer id the host takes in its own session; guests count up from one.
+pub const HOST_PEER: u64 = 0;
+
+/// Who a participant is and which page they have open. It is view state, so it
+/// travels beside the commits instead of in the scene.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Presence {
+    /// The participant's own name for themselves; empty when unknown.
+    pub name: String,
+    /// The page they have open, if any.
+    pub page: Option<String>,
+}
+
+/// One participant of a session, as the host lists them.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Member {
+    pub peer: u64,
+    #[serde(flatten)]
+    pub presence: Presence,
+}
+
 /// Messages a guest sends over the commit stream.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -73,6 +94,9 @@ pub enum ClientMessage {
     /// Applies one edit. `seq` identifies the send so its originator can wait
     /// for the host's verdict.
     Commit { seq: u64, patch: String },
+    /// Replaces this guest's presence. A guest is listed as a member once it
+    /// has sent one.
+    Presence(Presence),
 }
 
 /// Messages the host sends over the commit stream.
@@ -97,6 +121,9 @@ pub enum ServerMessage {
         seq: u64,
         reason: String,
     },
+    /// Everyone in the session, the host first, sent whenever anyone joins,
+    /// leaves, or moves to another page.
+    Members { members: Vec<Member> },
 }
 
 impl ServerMessage {
@@ -126,6 +153,7 @@ impl ClientMessage {
     pub fn into_commit(self) -> Option<(u64, Vec<u8>)> {
         match self {
             Self::Commit { seq, patch } => Some((seq, decode(&patch).ok()?)),
+            Self::Presence(_) => None,
         }
     }
 }

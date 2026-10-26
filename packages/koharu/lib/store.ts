@@ -132,7 +132,7 @@ export const useKoharuStore = create<KoharuStore>()((set) => ({
   processingStages: [...pipelineStages],
   settingsOpen: false,
   shortcuts: defaultShortcuts,
-  session: { role: null, link: null, online: false },
+  session: { role: null, link: null, online: false, members: [] },
   selectPages: (selectedPages) => set({ selectedPages: [...new Set(selectedPages)] }),
   showInspector: (inspector) => set({ inspector }),
   setProcessingScope: (processingScope) => set({ processingScope }),

@@ -368,6 +368,8 @@
     "copied": "복사됨",
     "copy": "링크 복사",
     "copyFailed": "링크를 복사할 수 없습니다",
+    "guest": "게스트 {{number}}",
+    "host": "호스트",
     "hostOffline": "호스트가 오프라인 — 편집 일시 중지",
     "hosting": "이 프로젝트 공유 중",
     "join": "세션 참가",
@@ -377,8 +379,14 @@
     "leave": "나가기",
     "linkCopied": "링크가 복사됨",
     "linkOffline": "공유 중지됨",
+    "memberJoined": "{{name}} 님이 세션에 참여했습니다",
+    "members": "이 세션의 참여자",
+    "noPage": "열린 페이지 없음",
+    "onPage": "{{number}}페이지",
+    "onThisPage": "이 페이지: {{names}}",
     "share": "세션 공유",
-    "stopShare": "공유 중지"
+    "stopShare": "공유 중지",
+    "you": "나"
   },
   "settings": {
     "appearance": {

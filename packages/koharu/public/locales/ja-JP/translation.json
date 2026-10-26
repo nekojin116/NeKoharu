@@ -368,6 +368,8 @@
     "copied": "コピーしました",
     "copy": "リンクをコピー",
     "copyFailed": "リンクをコピーできませんでした",
+    "guest": "ゲスト {{number}}",
+    "host": "ホスト",
     "hostOffline": "ホストがオフライン — 編集は停止中",
     "hosting": "このプロジェクトを共有中",
     "join": "セッションに参加",
@@ -377,8 +379,14 @@
     "leave": "退出",
     "linkCopied": "リンクをコピーしました",
     "linkOffline": "共有を停止しました",
+    "memberJoined": "{{name}} がセッションに参加しました",
+    "members": "このセッションの参加者",
+    "noPage": "ページを開いていません",
+    "onPage": "{{number}} ページ",
+    "onThisPage": "このページ: {{names}}",
     "share": "セッションを共有",
-    "stopShare": "共有を停止"
+    "stopShare": "共有を停止",
+    "you": "あなた"
   },
   "settings": {
     "appearance": {

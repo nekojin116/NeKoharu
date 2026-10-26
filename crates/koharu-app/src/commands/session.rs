@@ -10,7 +10,9 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::{StreamExt as _, future::BoxFuture};
 use koharu_scene::{BlobId, Patch, Revision, Session};
-use koharu_session::{Guest, GuestStatus, HostSource, HostStatus, Inbound, Tunnel};
+use koharu_session::{
+    Guest, GuestStatus, HOST_PEER, HostSource, HostStatus, Inbound, Member, Presence, Tunnel,
+};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -45,6 +47,53 @@ pub struct SessionInfo {
     pub link: Option<String>,
     /// False once the other side has gone away.
     pub online: bool,
+    /// Everyone in the session, the host first. Empty while offline.
+    pub members: Vec<SessionMember>,
+}
+
+/// One participant of the running session.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SessionMember {
+    /// Stable for as long as the participant stays connected.
+    #[specta(type = f64)]
+    pub peer: u64,
+    /// The participant's own name for themselves; empty when unknown.
+    pub name: String,
+    /// The id of the page they have open.
+    pub page: Option<String>,
+    pub host: bool,
+    /// True for this instance's own entry.
+    pub you: bool,
+}
+
+fn session_members(members: &[Member], you: Option<u64>) -> Vec<SessionMember> {
+    members
+        .iter()
+        .map(|member| SessionMember {
+            peer: member.peer,
+            name: member.presence.name.clone(),
+            page: member.presence.page.clone(),
+            host: member.peer == HOST_PEER,
+            you: Some(member.peer) == you,
+        })
+        .collect()
+}
+
+/// What this instance tells the other participants about itself: the account
+/// name it runs under, and the page it has open.
+pub(crate) fn presence(page: Option<koharu_scene::EntityId>) -> Presence {
+    let name = ["USERNAME", "USER"]
+        .into_iter()
+        .find_map(|key| {
+            std::env::var(key)
+                .ok()
+                .filter(|name| !name.trim().is_empty())
+        })
+        .unwrap_or_default();
+    Presence {
+        name,
+        page: page.map(|page| page.to_string()),
+    }
 }
 
 /// The session state the frontend is showing, kept so a late subscriber sees
@@ -64,6 +113,20 @@ impl SessionChannel {
 
     pub(crate) fn publish_info(&self, info: SessionInfo) {
         *self.current.lock() = info.clone();
+        self.channel.publish(info);
+    }
+
+    /// Replaces the member list while hosting; a later stop or a dead tunnel
+    /// has already said everything there is to say.
+    fn publish_hosted_members(&self, members: Vec<SessionMember>) {
+        let info = {
+            let mut current = self.current.lock();
+            if current.role != Some(SessionRole::Hosting) || current.members == members {
+                return;
+            }
+            current.members = members;
+            current.clone()
+        };
         self.channel.publish(info);
     }
 }
@@ -256,6 +319,7 @@ pub(crate) async fn start_session(
                 .context("cloudflared is unavailable")?;
             let (session, link, status) = koharu_session::Session::start(tunnel).await?;
             watch_host(handle.clone(), link.clone(), status.clone());
+            watch_members(handle.clone(), session.members());
             empty.insert(Host {
                 session,
                 link,
@@ -283,9 +347,25 @@ pub(crate) async fn start_session(
         role: Some(SessionRole::Hosting),
         link: Some(host.link.clone()),
         online: *host.status.borrow() == HostStatus::Online,
+        members: session_members(&host.session.members().borrow(), Some(HOST_PEER)),
     };
     session_channel.publish_info(info.clone());
     Ok(info)
+}
+
+/// Keeps the host's member list current for as long as its link lives.
+fn watch_members(
+    handle: AppHandle<CefRuntime>,
+    mut members: tokio::sync::watch::Receiver<Vec<Member>>,
+) {
+    tokio::spawn(async move {
+        while members.changed().await.is_ok() {
+            let list = session_members(&members.borrow_and_update(), Some(HOST_PEER));
+            handle
+                .state::<SessionChannel>()
+                .publish_hosted_members(list);
+        }
+    });
 }
 
 /// Ends the host's link once its tunnel dies, so the next share opens a new
@@ -322,6 +402,7 @@ fn watch_host(
                         role: Some(SessionRole::Hosting),
                         link: Some(link),
                         online: false,
+                        members: Vec::new(),
                     },
                 );
             }
@@ -381,6 +462,7 @@ pub(crate) async fn join_session(
         role: Some(SessionRole::Joined),
         link: None,
         online: *guest.status().borrow() == GuestStatus::Connected,
+        members: session_members(&guest.members().borrow(), guest.peer()),
     };
     session_channel.publish_info(info.clone());
     Ok(info)
@@ -437,6 +519,7 @@ pub(crate) fn publish(handle: &AppHandle<CefRuntime>, info: SessionInfo) {
 fn spawn_guest(handle: AppHandle<CefRuntime>, guest: Guest) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut status = guest.status();
+        let mut members = guest.members();
         let mut published: Option<SessionInfo> = None;
         let mut _prefetch = prefetch(handle.clone());
         loop {
@@ -445,6 +528,7 @@ fn spawn_guest(handle: AppHandle<CefRuntime>, guest: Guest) -> tokio::task::Join
                 role: Some(SessionRole::Joined),
                 link: None,
                 online: connected,
+                members: session_members(&members.borrow_and_update(), guest.peer()),
             };
             if published.as_ref() != Some(&info) {
                 publish(&handle, info.clone());
@@ -480,6 +564,7 @@ fn spawn_guest(handle: AppHandle<CefRuntime>, guest: Guest) -> tokio::task::Join
 
             let idle = tokio::select! {
                 _ = status.changed() => false,
+                _ = members.changed() => false,
                 result = guest.wait() => result.is_err(),
                 _ = tokio::time::sleep(TICK) => false,
             };

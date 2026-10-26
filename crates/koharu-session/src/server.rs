@@ -8,7 +8,10 @@
 
 use std::{
     collections::HashMap,
-    sync::{Arc, PoisonError, RwLock},
+    sync::{
+        Arc, PoisonError, RwLock, Weak,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use anyhow::{Context as _, Result};
@@ -27,7 +30,7 @@ use bytes::Bytes;
 use futures::{SinkExt as _, StreamExt as _};
 use tokio::sync::{Mutex, mpsc, oneshot, watch};
 
-use crate::protocol::{self, ClientMessage, ServerMessage};
+use crate::protocol::{self, ClientMessage, HOST_PEER, Member, Presence, ServerMessage};
 
 /// The application's side of a hosted session: the project the host owns.
 #[async_trait]
@@ -49,6 +52,11 @@ struct Shared {
     source: RwLock<Option<Arc<dyn HostSource>>>,
     token: String,
     peers: Mutex<HashMap<u64, mpsc::UnboundedSender<ServerMessage>>>,
+    /// Peer ids are never reused, so a departing guest cannot remove a newer
+    /// one and a returning guest reads as a new arrival.
+    next_peer: AtomicU64,
+    /// Everyone who announced a presence under the current share, by peer id.
+    members: watch::Sender<Vec<Member>>,
     revision: watch::Sender<u64>,
 }
 
@@ -58,6 +66,30 @@ impl Shared {
             .read()
             .unwrap_or_else(PoisonError::into_inner)
             .clone()
+    }
+
+    fn present(&self, peer: u64, presence: Presence) {
+        self.members.send_if_modified(|members| {
+            match members.binary_search_by_key(&peer, |member| member.peer) {
+                Ok(index) if members[index].presence == presence => false,
+                Ok(index) => {
+                    members[index].presence = presence;
+                    true
+                }
+                Err(index) => {
+                    members.insert(index, Member { peer, presence });
+                    true
+                }
+            }
+        });
+    }
+
+    fn depart(&self, peer: u64) {
+        self.members.send_if_modified(|members| {
+            let before = members.len();
+            members.retain(|member| member.peer != peer);
+            members.len() != before
+        });
     }
 }
 
@@ -101,8 +133,11 @@ impl Session {
             source: RwLock::new(None),
             token: token.clone(),
             peers: Mutex::new(HashMap::new()),
+            next_peer: AtomicU64::new(HOST_PEER + 1),
+            members: watch::channel(Vec::new()).0,
             revision: revision_tx,
         });
+        forward_members(&shared);
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
@@ -166,6 +201,7 @@ impl Session {
     pub async fn share(&self, source: Arc<dyn HostSource>) -> Result<Broadcaster> {
         let revision = revision_of(&source.state().await?);
         self.shared.peers.lock().await.clear();
+        self.shared.members.send_replace(Vec::new());
         self.shared.revision.send_replace(revision);
         *self
             .shared
@@ -188,6 +224,12 @@ impl Session {
         // Dropping the peers closes their streams, so every guest learns the
         // host is gone instead of waiting for the tunnel to time out.
         self.shared.peers.lock().await.clear();
+        self.shared.members.send_replace(Vec::new());
+    }
+
+    /// Everyone in the session, the host first, as it changes.
+    pub fn members(&self) -> watch::Receiver<Vec<Member>> {
+        self.shared.members.subscribe()
     }
 
     pub fn origin(&self) -> &str {
@@ -231,6 +273,37 @@ impl Broadcaster {
     pub async fn broadcast(&self, revision: u64, patch: &[u8]) {
         broadcast_commit(&self.shared, ServerMessage::commit(revision, patch)).await;
     }
+
+    /// Replaces the host's own presence.
+    pub fn present(&self, presence: Presence) {
+        self.shared.present(HOST_PEER, presence);
+    }
+
+    /// Everyone in the session, the host first, as it changes.
+    pub fn members(&self) -> watch::Receiver<Vec<Member>> {
+        self.shared.members.subscribe()
+    }
+}
+
+/// Sends the member list to every guest whenever it changes. The task only
+/// holds the session weakly, so it ends with it.
+fn forward_members(shared: &Arc<Shared>) {
+    let mut members = shared.members.subscribe();
+    let shared = Arc::downgrade(shared);
+    tokio::spawn(async move {
+        while members.changed().await.is_ok() {
+            let message = ServerMessage::Members {
+                members: members.borrow_and_update().clone(),
+            };
+            let Some(shared) = Weak::upgrade(&shared) else {
+                return;
+            };
+            let peers: Vec<_> = shared.peers.lock().await.values().cloned().collect();
+            for peer in peers {
+                let _ = peer.send(message.clone());
+            }
+        }
+    });
 }
 
 async fn state(
@@ -290,9 +363,8 @@ async fn stream(
 async fn peer(shared: Arc<Shared>, source: Arc<dyn HostSource>, socket: WebSocket) {
     let (outbound_tx, mut outbound_rx) = mpsc::unbounded_channel::<ServerMessage>();
     let peer = {
-        let mut peers = shared.peers.lock().await;
-        let id = peers.keys().copied().max().unwrap_or(0).saturating_add(1);
-        peers.insert(id, outbound_tx);
+        let id = shared.next_peer.fetch_add(1, Ordering::Relaxed);
+        shared.peers.lock().await.insert(id, outbound_tx);
         id
     };
     tracing::info!(peer, "guest connected");
@@ -311,7 +383,10 @@ async fn peer(shared: Arc<Shared>, source: Arc<dyn HostSource>, socket: WebSocke
             return;
         }
     };
-    if send(&mut sink, welcome).await.is_err() {
+    let members = ServerMessage::Members {
+        members: shared.members.borrow().clone(),
+    };
+    if send(&mut sink, welcome).await.is_err() || send(&mut sink, members).await.is_err() {
         shared.peers.lock().await.remove(&peer);
         return;
     }
@@ -328,6 +403,10 @@ async fn peer(shared: Arc<Shared>, source: Arc<dyn HostSource>, socket: WebSocke
                 let Ok(message) = serde_json::from_str::<ClientMessage>(&text) else {
                     continue;
                 };
+                if let ClientMessage::Presence(presence) = message {
+                    shared.present(peer, presence);
+                    continue;
+                }
                 let Some((seq, patch)) = message.into_commit() else {
                     continue;
                 };
@@ -359,6 +438,7 @@ async fn peer(shared: Arc<Shared>, source: Arc<dyn HostSource>, socket: WebSocke
     }
     let _ = sink.send(Message::Close(None)).await;
     shared.peers.lock().await.remove(&peer);
+    shared.depart(peer);
     tracing::info!(peer, "guest disconnected");
 }
 
@@ -500,6 +580,30 @@ mod tests {
             source.encoded
         );
 
+        // Presence reaches everyone once announced, the host listed first.
+        broadcaster.present(Presence {
+            name: "Host".to_owned(),
+            page: Some("page-1".to_owned()),
+        });
+        guest.present(Presence {
+            name: "Guest".to_owned(),
+            page: Some("page-2".to_owned()),
+        });
+        let listed = guest.members();
+        let hosted = broadcaster.members();
+        wait_until("both members to be listed", || {
+            listed.borrow().len() == 2 && hosted.borrow().len() == 2
+        })
+        .await;
+        assert_eq!(*listed.borrow(), *hosted.borrow());
+        let members = hosted.borrow().clone();
+        assert_eq!(members[0].peer, crate::protocol::HOST_PEER);
+        assert_eq!(
+            members[1].peer,
+            guest.peer().expect("the guest was welcomed")
+        );
+        assert_eq!(members[1].presence.page.as_deref(), Some("page-2"));
+
         // An edit reaches the host and comes back as its own verdict.
         let sequence = guest.send(vec![1, 2, 3]).await.expect("the edit is sent");
         match guest
@@ -541,6 +645,7 @@ mod tests {
             *connected.borrow() != GuestStatus::Connected
         })
         .await;
+        assert!(hosted.borrow().is_empty());
         assert!(guest.fetch_state().await.is_err());
         session
             .share(source.clone())
