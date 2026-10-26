@@ -484,6 +484,21 @@ export type SessionInfo = {
 	link: string | null,
 	/**  False once the other side has gone away. */
 	online: boolean,
+	/**  Everyone in the session, the host first. Empty while offline. */
+	members: SessionMember[],
+};
+
+/**  One participant of the running session. */
+export type SessionMember = {
+	/**  Stable for as long as the participant stays connected. */
+	peer: number,
+	/**  The participant's own name for themselves; empty when unknown. */
+	name: string,
+	/**  The id of the page they have open. */
+	page: string | null,
+	host: boolean,
+	/**  True for this instance's own entry. */
+	you: boolean,
 };
 
 /**  What this instance is doing with other machines, sent to the frontend. */

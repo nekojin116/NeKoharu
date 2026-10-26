@@ -272,6 +272,17 @@ pub(crate) enum ProjectMode {
     Guest(koharu_session::Guest),
 }
 
+impl ProjectMode {
+    /// Tells the other participants which page this instance has open.
+    fn present(&self, page: Option<EntityId>) {
+        match self {
+            Self::Local => {}
+            Self::Host(broadcaster) => broadcaster.present(super::session::presence(page)),
+            Self::Guest(guest) => guest.present(super::session::presence(page)),
+        }
+    }
+}
+
 /// Sends an edit to the session host and adopts the commit it comes back as.
 /// Everything the host sent before that edit is applied first, so the replica
 /// follows the host's order exactly.
@@ -396,12 +407,13 @@ impl Project {
 
     #[must_use]
     pub(crate) fn with_mode(mut self, mode: ProjectMode) -> Self {
-        self.mode = mode;
+        self.set_mode(mode);
         self
     }
 
     pub(crate) fn set_mode(&mut self, mode: ProjectMode) {
         self.mode = mode;
+        self.mode.present(self.active_page);
     }
 
     /// Swaps in a freshly fetched copy of the project, dropping local history.
@@ -427,6 +439,7 @@ impl Project {
     pub(crate) fn select_page(&mut self, page: EntityId) -> Result<()> {
         self.snapshot().page(page)?;
         self.active_page = Some(page);
+        self.mode.present(self.active_page);
         if let Some(view) = &self.view {
             let saved = serde_json::to_vec(&View { active_page: page })
                 .map_err(anyhow::Error::from)
@@ -445,6 +458,7 @@ impl Project {
             .is_none_or(|page| snapshot.page(page).is_err())
         {
             self.active_page = snapshot.pages().next().map(|page| page.id());
+            self.mode.present(self.active_page);
         }
     }
 

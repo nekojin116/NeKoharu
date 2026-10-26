@@ -368,6 +368,8 @@
     "copied": "تم النسخ",
     "copy": "نسخ الربط",
     "copyFailed": "تعذّ النسخ رابط",
+    "guest": "ضيف {{number}}",
+    "host": "المضيف",
     "hostOffline": "المديح غير متصل — توقف التعديل",
     "hosting": "مشاركة هذا المشروع",
     "join": "الانضمال إلى جلسة",
@@ -377,8 +379,14 @@
     "leave": "مغادرة",
     "linkCopied": "تم نسخ الرابط",
     "linkOffline": "توقفت المشاركة",
+    "memberJoined": "انضم {{name}} إلى الجلسة",
+    "members": "في هذه الجلسة",
+    "noPage": "لا توجد صفحة مفتوحة",
+    "onPage": "الصفحة {{number}}",
+    "onThisPage": "في هذه الصفحة: {{names}}",
     "share": "مشاركة الجلسة",
-    "stopShare": "إيقاف المشاركة"
+    "stopShare": "إيقاف المشاركة",
+    "you": "أنت"
   },
   "settings": {
     "appearance": {

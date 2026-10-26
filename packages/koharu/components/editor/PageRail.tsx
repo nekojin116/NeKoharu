@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } fro
 import { useTranslation } from 'react-i18next'
 
 import { ResourceMonitor } from '@/components/editor/ResourceMonitor'
+import { MemberAvatar, memberName } from '@/components/editor/SessionBar'
 import { call } from '@/lib/backend'
 import { useForkPreferences } from '@/lib/forkPreferences'
 import {
@@ -39,6 +40,7 @@ import {
   type PageImportSource,
   type PageSummary,
   type ProjectInfo,
+  type SessionMember,
 } from '@koharu/bridge/protocol'
 import { Button } from '@koharu/ui/components/button'
 import {
@@ -62,6 +64,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@koharu/ui/components/t
 import { cn } from '@koharu/ui/lib/utils'
 
 const emptyPages: PageSummary[] = []
+/** Avatars a rail entry shows before folding the rest into a count. */
+const MAX_PAGE_MEMBERS = 3
 
 interface IntentPrefetchState {
   project: string
@@ -76,6 +80,17 @@ export function PageRail() {
   const pages = usePages().data ?? emptyPages
   const active = usePage().data?.id ?? null
   const selected = useKoharuStore((state) => state.selectedPages)
+  const members = useKoharuStore((state) => state.session.members)
+  // Where everyone else in the session is; this instance's own page is the
+  // active one already.
+  const membersByPage = useMemo(() => {
+    const byPage = new Map<string, SessionMember[]>()
+    for (const member of members) {
+      if (member.you || !member.page) continue
+      byPage.set(member.page, [...(byPage.get(member.page) ?? []), member])
+    }
+    return byPage
+  }, [members])
   const selectPages = useKoharuStore((state) => state.selectPages)
   const selectLayers = useKoharuStore((state) => state.selectLayers)
   const setSettingsOpen = useKoharuStore((state) => state.setSettingsOpen)
@@ -446,6 +461,7 @@ export function PageRail() {
                       index={index}
                       active={active === page.id}
                       selected={selected.includes(page.id)}
+                      members={membersByPage.get(page.id)}
                       dragged={dragged === page.id}
                       isDragging={dragged !== null}
                       dropPosition={dropTarget?.page === page.id ? dropTarget.position : null}
@@ -618,6 +634,7 @@ function PageItem({
   index,
   active,
   selected,
+  members,
   dragged,
   dropPosition,
   isDragging,
@@ -637,6 +654,7 @@ function PageItem({
   index: number
   active: boolean
   selected: boolean
+  members?: SessionMember[]
   dragged: boolean
   dropPosition: DropPosition | null
   isDragging?: boolean
@@ -702,7 +720,7 @@ function PageItem({
     >
       <div
         className={cn(
-          'grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
+          'relative grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
           isDragging && 'pointer-events-none',
         )}
       >
@@ -711,6 +729,7 @@ function PageItem({
         ) : (
           <span className='text-[9px] text-muted-foreground'>{t('navigator.noImage')}</span>
         )}
+        {members && members.length > 0 && <PageMembers members={members} />}
       </div>
       <div className={cn('min-w-0 py-0.5', isDragging && 'pointer-events-none')}>
         <div className='flex items-start gap-1'>
@@ -780,6 +799,36 @@ function PageItem({
         </p>
       </div>
     </article>
+  )
+}
+
+/** The other session participants who have this page open. */
+function PageMembers({ members }: { members: SessionMember[] }) {
+  const { t } = useTranslation()
+  const label = t('session.onThisPage', {
+    names: members.map((member) => memberName(t, member)).join(', '),
+  })
+  const hidden = members.length - MAX_PAGE_MEMBERS
+  return (
+    <span
+      role='img'
+      aria-label={label}
+      title={label}
+      className='absolute right-0.5 bottom-0.5 flex -space-x-1'
+    >
+      {members.slice(0, MAX_PAGE_MEMBERS).map((member) => (
+        <MemberAvatar
+          key={member.peer}
+          member={member}
+          className='ring-1 ring-[var(--surface-well)]'
+        />
+      ))}
+      {hidden > 0 && (
+        <span className='grid size-4 place-items-center rounded-full bg-foreground text-[8px] leading-none font-semibold text-background ring-1 ring-[var(--surface-well)]'>
+          +{hidden}
+        </span>
+      )}
+    </span>
   )
 }
 

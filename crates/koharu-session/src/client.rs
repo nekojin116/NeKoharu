@@ -19,7 +19,7 @@ use tokio::{
     time::Duration,
 };
 
-use crate::protocol::{ClientMessage, ServerMessage, token_from_link};
+use crate::protocol::{ClientMessage, Member, Presence, ServerMessage, token_from_link};
 
 const RECONNECT_MIN: Duration = Duration::from_millis(500);
 const RECONNECT_MAX: Duration = Duration::from_secs(5);
@@ -57,6 +57,9 @@ struct Inner {
     status: watch::Sender<GuestStatus>,
     peer: watch::Sender<Option<u64>>,
     name: watch::Sender<Option<String>>,
+    /// What this guest tells the host about itself; resent on every connect.
+    presence: watch::Sender<Presence>,
+    members: watch::Sender<Vec<Member>>,
     generation: watch::Sender<u64>,
     inbox: Mutex<VecDeque<Inbound>>,
     inbox_notify: Notify,
@@ -93,6 +96,8 @@ impl Guest {
             status: watch::channel(GuestStatus::Reconnecting).0,
             peer: watch::channel(None).0,
             name: watch::channel(None).0,
+            presence: watch::channel(Presence::default()).0,
+            members: watch::channel(Vec::new()).0,
             generation: watch::channel(0).0,
             inbox: Mutex::new(VecDeque::new()),
             inbox_notify: Notify::new(),
@@ -118,6 +123,21 @@ impl Guest {
     /// The name the host gives its project, once welcomed.
     pub fn project_name(&self) -> Option<String> {
         self.inner.name.borrow().clone()
+    }
+
+    /// Replaces what the host and the other guests see of this guest.
+    pub fn present(&self, presence: Presence) {
+        self.inner.presence.send_if_modified(|current| {
+            let changed = *current != presence;
+            *current = presence;
+            changed
+        });
+    }
+
+    /// Everyone in the session, as the host last listed them. Empty while the
+    /// host is unreachable.
+    pub fn members(&self) -> watch::Receiver<Vec<Member>> {
+        self.inner.members.subscribe()
     }
 
     /// True while the replica is behind the host and must be reloaded.
@@ -269,6 +289,7 @@ impl Inner {
             // reloads from the host when it reconnects.
             self.inbox.lock().await.clear();
             self.writer.lock().await.take();
+            self.members.send_replace(Vec::new());
             self.status.send_replace(GuestStatus::Reconnecting);
             self.inbox_notify.notify_waiters();
             if self.closed.load(Ordering::SeqCst) {
@@ -298,8 +319,23 @@ impl Inner {
         self.status.send_replace(GuestStatus::Connected);
         self.inbox_notify.notify_waiters();
 
+        // Announce on every connect, but not before the application has said
+        // who this is: the host lists a guest from its first presence.
+        let mut presence = self.presence.subscribe();
+        if *presence.borrow() != Presence::default() {
+            presence.mark_changed();
+        }
         let writer = tokio::spawn(async move {
-            while let Some(message) = inbox.recv().await {
+            loop {
+                let message = tokio::select! {
+                    message = inbox.recv() => match message {
+                        Some(message) => message,
+                        None => return,
+                    },
+                    Ok(()) = presence.changed() => {
+                        ClientMessage::Presence(presence.borrow_and_update().clone())
+                    }
+                };
                 let text = serde_json::to_string(&message).unwrap_or_default();
                 if sink
                     .send(tokio_tungstenite::tungstenite::Message::Text(text.into()))
@@ -347,6 +383,10 @@ fn decode(text: &str, inner: &Inner) -> Option<Inbound> {
         }),
         ServerMessage::Ack { seq, revision } => Some(Inbound::Ack { seq, revision }),
         ServerMessage::Resync { seq, reason, .. } => Some(Inbound::Rejected { seq, reason }),
+        ServerMessage::Members { members } => {
+            inner.members.send_replace(members);
+            None
+        }
     }
 }
 

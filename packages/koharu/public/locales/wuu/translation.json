@@ -368,6 +368,8 @@
     "copied": "已复制",
     "copy": "复制链接",
     "copyFailed": "复制链接弗成功",
+    "guest": "客人 {{number}}",
+    "host": "主持人",
     "hostOffline": "主机弗在线—编辑暂停",
     "hosting": "勒该分享项目",
     "join": "加入会话",
@@ -377,8 +379,14 @@
     "leave": "离开",
     "linkCopied": "链接已复制",
     "linkOffline": "分享已停止",
+    "memberJoined": "{{name}} 加入会话哉",
+    "members": "会话里向个人",
+    "noPage": "呒没打开页面",
+    "onPage": "第 {{number}} 页",
+    "onThisPage": "勒拉搿页：{{names}}",
     "share": "分享会话",
-    "stopShare": "停止分享"
+    "stopShare": "停止分享",
+    "you": "侬"
   },
   "settings": {
     "appearance": {
