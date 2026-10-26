@@ -368,6 +368,8 @@
     "copied": "Kopyalandı",
     "copy": "Bağlantıyı kopyala",
     "copyFailed": "Bağlantı kopyalanamadı",
+    "guest": "Misafir {{number}}",
+    "host": "Ev sahibi",
     "hostOffline": "Ev sahibi çevrimdış — düzenleme duraklatıldı",
     "hosting": "Bu proje paylaşılıyor",
     "join": "Oturuma katıl",
@@ -377,8 +379,14 @@
     "leave": "Ayrıl",
     "linkCopied": "Bağlantı kopyalandı",
     "linkOffline": "Paylaşım durduruldu",
+    "memberJoined": "{{name}} oturuma katıldı",
+    "members": "Bu oturumda",
+    "noPage": "Açık sayfa yok",
+    "onPage": "Sayfa {{number}}",
+    "onThisPage": "Bu sayfada: {{names}}",
     "share": "Oturumu paylaş",
-    "stopShare": "Paylaşımı durdur"
+    "stopShare": "Paylaşımı durdur",
+    "you": "Sen"
   },
   "settings": {
     "appearance": {

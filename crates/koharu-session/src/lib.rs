@@ -9,6 +9,6 @@ pub mod server;
 pub mod tunnel;
 
 pub use client::{Guest, GuestStatus, Inbound};
-pub use protocol::{ClientMessage, ServerMessage, join_link};
+pub use protocol::{ClientMessage, HOST_PEER, Member, Presence, ServerMessage, join_link};
 pub use server::{Broadcaster, HostSource, HostStatus, Session};
 pub use tunnel::{Tunnel, TunnelStatus};

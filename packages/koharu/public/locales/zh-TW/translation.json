@@ -368,6 +368,8 @@
     "copied": "已複製",
     "copy": "複製連結",
     "copyFailed": "無法複製連結",
+    "guest": "訪客 {{number}}",
+    "host": "主持人",
     "hostOffline": "主機已離線 — 編輯已暫停",
     "hosting": "正在分享此專案",
     "join": "加入工作階段",
@@ -377,8 +379,14 @@
     "leave": "離開",
     "linkCopied": "連結已複製",
     "linkOffline": "已停止分享",
+    "memberJoined": "{{name}} 加入了工作階段",
+    "members": "工作階段成員",
+    "noPage": "未開啟頁面",
+    "onPage": "第 {{number}} 頁",
+    "onThisPage": "在此頁面：{{names}}",
     "share": "分享工作階段",
-    "stopShare": "停止分享"
+    "stopShare": "停止分享",
+    "you": "你"
   },
   "settings": {
     "appearance": {

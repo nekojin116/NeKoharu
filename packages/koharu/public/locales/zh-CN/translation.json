@@ -368,6 +368,8 @@
     "copied": "已复制",
     "copy": "复制链接",
     "copyFailed": "无法复制链接",
+    "guest": "访客 {{number}}",
+    "host": "主持人",
     "hostOffline": "主机已离线 — 编辑已暂停",
     "hosting": "正在共享此项目",
     "join": "加入会话",
@@ -377,8 +379,14 @@
     "leave": "离开",
     "linkCopied": "链接已复制",
     "linkOffline": "已停止共享",
+    "memberJoined": "{{name}} 加入了会话",
+    "members": "会话成员",
+    "noPage": "未打开页面",
+    "onPage": "第 {{number}} 页",
+    "onThisPage": "在此页面：{{names}}",
     "share": "共享会话",
-    "stopShare": "停止共享"
+    "stopShare": "停止共享",
+    "you": "你"
   },
   "settings": {
     "appearance": {
