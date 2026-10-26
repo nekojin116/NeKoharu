@@ -360,6 +360,22 @@
     "vramUnavailable": "Unavailable",
     "vramValue": "{{value}} VRAM"
   },
+  "session": {
+    "copied": "Copied",
+    "copy": "Copy link",
+    "copyFailed": "Could not copy the link",
+    "hostOffline": "Host offline — editing is paused",
+    "hosting": "Sharing this project",
+    "join": "Join a session",
+    "joinAction": "Join",
+    "joinPlaceholder": "Paste an invite link",
+    "joined": "Joined session",
+    "leave": "Leave",
+    "linkCopied": "Link copied",
+    "linkOffline": "Sharing stopped",
+    "share": "Share session",
+    "stopShare": "Stop sharing"
+  },
   "settings": {
     "appearance": {
       "description": "Match your workspace to the room without changing how artwork is rendered.",

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useColorSampling } from '@/components/controls/ColorSampling'
 import { CanvasCommandBar } from '@/components/editor/CanvasCommandBar'
 import { CanvasOverlay } from '@/components/editor/CanvasOverlay'
+import { SessionNotice } from '@/components/editor/SessionBar'
 import { StatusBar } from '@/components/editor/StatusBar'
 import { ToolBar } from '@/components/editor/ToolBar'
 import { useCanvas } from '@/components/editor/useCanvas'
@@ -42,6 +43,7 @@ import {
   maxBrushDiameter,
   MIN_BRUSH_DIAMETER,
   receiveError,
+  sessionReadOnly,
   useKoharuStore,
   type CanvasTool,
 } from '@/lib/store'
@@ -125,6 +127,8 @@ export function CanvasWorkspace() {
   const fitCanvasRequest = useKoharuStore((state) => state.fitCanvasRequest)
   const layerFrames = useKoharuStore((state) => state.layerFrames)
   const tool = useKoharuStore((state) => state.tool)
+  // A joined project without its host accepts no edits, only viewing.
+  const readOnly = useKoharuStore((state) => sessionReadOnly(state.session))
   const brush = useKoharuStore((state) => state.brush)
   const selected = useKoharuStore((state) => state.selectedLayers)
   const selectLayers = useKoharuStore((state) => state.selectLayers)
@@ -558,9 +562,7 @@ export function CanvasWorkspace() {
         .map((layer) => layer.id)
 
       selectLayers(
-        current.additive
-          ? [...new Set([...selected, ...selectedInRect])]
-          : selectedInRect,
+        current.additive ? [...new Set([...selected, ...selectedInRect])] : selectedInRect,
       )
       setSelectionRect(null)
     } else if (current.kind === 'move') {
@@ -600,30 +602,30 @@ export function CanvasWorkspace() {
       const operation =
         current.kind === 'paint'
           ? enqueue(() =>
-            call(commands.commitPaint, current.revision, current.layer, current.points, {
-              diameter: current.diameter,
-              color: current.color!,
-            }),
-          ).then((result) => {
-            selectLayers([result.layer])
-            return refresh(projectKey, pagesKey, pageKey)
-          })
-          : current.kind === 'erase'
-            ? enqueue(() =>
-              call(
-                commands.commitErase,
-                current.revision,
-                current.layer!,
-                current.points,
-                current.diameter,
-              ),
+              call(commands.commitPaint, current.revision, current.layer, current.points, {
+                diameter: current.diameter,
+                color: current.color!,
+              }),
             ).then((result) => {
               selectLayers([result.layer])
               return refresh(projectKey, pagesKey, pageKey)
             })
+          : current.kind === 'erase'
+            ? enqueue(() =>
+                call(
+                  commands.commitErase,
+                  current.revision,
+                  current.layer!,
+                  current.points,
+                  current.diameter,
+                ),
+              ).then((result) => {
+                selectLayers([result.layer])
+                return refresh(projectKey, pagesKey, pageKey)
+              })
             : enqueue(() =>
-              call(commands.commitInpaint, current.revision, current.points, current.diameter),
-            )
+                call(commands.commitInpaint, current.revision, current.points, current.diameter),
+              )
       commitPending.current = true
       void operation
         .catch(() => canvas?.cancelStroke())
@@ -636,6 +638,7 @@ export function CanvasWorkspace() {
       <CanvasCommandBar />
       <div className='relative flex min-h-0 min-w-0 flex-1'>
         <ToolBar />
+        <SessionNotice />
         <div
           ref={surface}
           tabIndex={0}
@@ -658,6 +661,13 @@ export function CanvasWorkspace() {
               return
             if (event.target instanceof Element && event.target.closest('[data-canvas-control]'))
               return
+            const viewing =
+              event.button === 1 ||
+              spaceHeld.current ||
+              tool === 'pan' ||
+              tool === 'select' ||
+              tool === 'color_picker'
+            if (readOnly && !viewing) return
             event.currentTarget.focus()
             event.currentTarget.setPointerCapture(event.pointerId)
             const physical = clientPhysicalPoint(event.clientX, event.clientY)
@@ -700,6 +710,7 @@ export function CanvasWorkspace() {
                   : [target.id]
               selectLayers(next)
               if (!next.includes(target.id)) return
+              if (readOnly) return
               const originals = framesFor(next)
               if (!originals.length) return
               gesture.current = { kind: 'move', pointer: event.pointerId, start: point, originals }
@@ -875,13 +886,11 @@ export function CanvasWorkspace() {
               className='pointer-events-none absolute z-10 border border-[var(--canvas-selection)] bg-[var(--canvas-selection)]/10'
               style={{
                 left:
-                  (selectionRect.x * camera.zoom + camera.translation[0]) /
-                  window.devicePixelRatio,
+                  (selectionRect.x * camera.zoom + camera.translation[0]) / window.devicePixelRatio,
                 top:
-                  (selectionRect.y * camera.zoom + camera.translation[1]) /
-                  window.devicePixelRatio,
-                width: selectionRect.width * camera.zoom / window.devicePixelRatio,
-                height: selectionRect.height * camera.zoom / window.devicePixelRatio,
+                  (selectionRect.y * camera.zoom + camera.translation[1]) / window.devicePixelRatio,
+                width: (selectionRect.width * camera.zoom) / window.devicePixelRatio,
+                height: (selectionRect.height * camera.zoom) / window.devicePixelRatio,
               }}
             />
           )}
@@ -1049,7 +1058,7 @@ class FrameCommand<Value> {
   constructor(
     private readonly execute: (value: Value) => void | Promise<unknown>,
     private readonly merge: (current: Value, next: Value) => Value = (_current, next) => next,
-  ) { }
+  ) {}
 
   schedule(value: Value): void {
     this.pending = this.pending === undefined ? value : this.merge(this.pending, value)

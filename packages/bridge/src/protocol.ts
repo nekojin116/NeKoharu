@@ -12,7 +12,7 @@ export const commands = {
 	saveAgentConfig: (config: Config) => __TAURI_INVOKE<Config>("save_agent_config", { config }),
 	runAgent: (prompt: string, onEvent: Channel<Event>) => __TAURI_INVOKE<RunId>("run_agent", { prompt, onEvent }),
 	cancelAgent: (run: RunId) => __TAURI_INVOKE<null>("cancel_agent", { run }),
-	subscribe: (onCanvas: Channel<CanvasState>, onJob: Channel<Job>, onDownload: Channel<Download>, onResources: Channel<ModelResources>, onProject: Channel<ProjectInfo | null>) => __TAURI_INVOKE<StartupState>("subscribe", { onCanvas, onJob, onDownload, onResources, onProject }),
+	subscribe: (onCanvas: Channel<CanvasState>, onJob: Channel<Job>, onDownload: Channel<Download>, onResources: Channel<ModelResources>, onProject: Channel<ProjectInfo | null>, onSession: Channel<SessionInfo>) => __TAURI_INVOKE<StartupState>("subscribe", { onCanvas, onJob, onDownload, onResources, onProject, onSession }),
 	getProject: () => __TAURI_INVOKE<ProjectInfo | null>("get_project"),
 	getPages: () => __TAURI_INVOKE<PageSummary[]>("get_pages"),
 	getPage: () => __TAURI_INVOKE<Page | null>("get_page"),
@@ -59,6 +59,20 @@ export const commands = {
 	commitErase: (expectedRevision: Revision, layer: EntityId, points: Point[], diameter: number) => __TAURI_INVOKE<LayerCommit>("commit_erase", { expectedRevision, layer, points, diameter }),
 	commitTransform: (expectedRevision: Revision, elements: TransformFrame[]) => __TAURI_INVOKE<Revision | null>("commit_transform", { expectedRevision, elements }),
 	commitInpaint: (expectedRevision: Revision, points: Point[], diameter: number) => __TAURI_INVOKE<JobId | null>("commit_inpaint", { expectedRevision, points, diameter }),
+	/**
+	 *  Starts sharing the open project: brings up a quick tunnel and hands back
+	 *  the link to give to other users.
+	 */
+	startSession: () => __TAURI_INVOKE<SessionInfo>("start_session"),
+	/**  Stops hosting. The project and its files are untouched. */
+	stopSession: () => __TAURI_INVOKE<null>("stop_session"),
+	/**
+	 *  Joins someone else's session. The local library is not touched: the project
+	 *  lives on the host and only its replica is held here.
+	 */
+	joinSession: (link: string) => __TAURI_INVOKE<SessionInfo>("join_session", { link }),
+	/**  Leaves the joined session and closes the replica. */
+	leaveSession: () => __TAURI_INVOKE<null>("leave_session"),
 };
 
 /* Types */
@@ -444,6 +458,18 @@ export type Scope = { scope: "project" } | { scope: "pages"; value: EntityId[] }
 	page: EntityId,
 	bounds: Bounds,
 } } | { scope: "entities"; value: EntityId[] };
+
+export type SessionInfo = {
+	/**  `None` when no session is running. */
+	role: SessionRole | null,
+	/**  The link to hand out, while hosting. */
+	link: string | null,
+	/**  False once the other side has gone away. */
+	online: boolean,
+};
+
+/**  What this instance is doing with other machines, sent to the frontend. */
+export type SessionRole = "hosting" | "joined";
 
 export type SourceText = {
 	text: string,

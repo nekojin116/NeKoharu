@@ -10,6 +10,7 @@ import type {
   Model,
   Frame,
   Preferences,
+  SessionInfo,
   Stage,
   StartupState,
   ModelResources,
@@ -35,6 +36,11 @@ export function maxBrushDiameter(size: PageSize): number {
 
 export function isBrushTool(tool: CanvasTool): boolean {
   return tool === 'draw' || tool === 'eraser' || tool === 'remove'
+}
+
+/** A joined project stops accepting edits the moment its host is gone. */
+export function sessionReadOnly(session: SessionInfo): boolean {
+  return session.role === 'joined' && !session.online
 }
 
 export interface CanvasBrush {
@@ -71,6 +77,7 @@ interface KoharuStore {
   processingStages: Stage[]
   settingsOpen: boolean
   shortcuts: Shortcuts
+  session: SessionInfo
   selectPages: (pages: EntityId[]) => void
   showInspector: (section: InspectorSection) => void
   setProcessingScope: (scope: PipelineScope) => void
@@ -81,6 +88,7 @@ interface KoharuStore {
   setTool: (tool: CanvasTool, cleanupLayer?: EntityId) => void
   setBrush: (brush: CanvasBrush) => void
   setShortcut: (action: ShortcutAction, key: string) => void
+  setSession: (session: SessionInfo) => void
   requestCanvasFit: () => void
   dismissJob: (id: string) => void
   dismissDownload: (id: number) => void
@@ -122,6 +130,7 @@ export const useKoharuStore = create<KoharuStore>()((set) => ({
   processingStages: [...pipelineStages],
   settingsOpen: false,
   shortcuts: defaultShortcuts,
+  session: { role: null, link: null, online: false },
   selectPages: (selectedPages) => set({ selectedPages: [...new Set(selectedPages)] }),
   showInspector: (inspector) => set({ inspector }),
   setProcessingScope: (processingScope) => set({ processingScope }),
@@ -141,6 +150,7 @@ export const useKoharuStore = create<KoharuStore>()((set) => ({
     set((state) => ({
       shortcuts: { ...state.shortcuts, [action]: key.toLowerCase().slice(0, 1) },
     })),
+  setSession: (session) => set({ session }),
   requestCanvasFit: () => set((state) => ({ fitCanvasRequest: state.fitCanvasRequest + 1 })),
   dismissJob: (id) =>
     set((state) => {
@@ -193,6 +203,10 @@ export function receiveTranslationModels(translationModels: Model[]): void {
 
 export function receiveResources(resources: ModelResources): void {
   useKoharuStore.setState({ resources })
+}
+
+export function receiveSession(session: SessionInfo): void {
+  useKoharuStore.setState({ session })
 }
 
 export function receiveError(message: string): void {

@@ -1642,3 +1642,92 @@ async fn user_promotion_protects_generated_entity_and_relation_lifecycle() {
         Err(Error::Authorship(_))
     ));
 }
+
+/// Serves a replica's blob requests from the host's snapshot, as the session
+/// link does across machines.
+struct HostBlobs(Snapshot);
+
+impl koharu_storage::BlobOrigin for HostBlobs {
+    fn fetch(
+        &self,
+        id: BlobId,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = koharu_storage::Result<bytes::Bytes>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            self.0
+                .read_blob(id)
+                .await
+                .map_err(|error| koharu_storage::Error::Task(error.into()))
+        })
+    }
+}
+
+#[tokio::test]
+async fn encoded_snapshot_opens_a_replica_that_commits_at_the_hosts_revision() {
+    let mut host = Session::memory().await.unwrap();
+    let mut created = None;
+    let create = host
+        .snapshot()
+        .patch(|edit| {
+            created = Some(edit.add_page(page(), At::End)?);
+            Ok(())
+        })
+        .unwrap();
+    host.commit(create).await.unwrap();
+    let page = created.unwrap();
+
+    let encoded = host.snapshot().encode().unwrap();
+    let cache = tempfile::tempdir().unwrap();
+    let origin = Arc::new(HostBlobs(host.snapshot()));
+    let mut replica = Session::replica(&encoded, cache.path(), origin)
+        .await
+        .unwrap();
+    assert_eq!(replica.snapshot().revision(), host.snapshot().revision());
+    assert_eq!(replica.snapshot().pages().len(), 1);
+
+    // One edit travels as bytes both ways and lands on both machines under the
+    // revision the host handed out.
+    let patch = replica
+        .snapshot()
+        .patch(|edit| edit.set_page(page, PageDraft::new("renamed", 1200.0, 1800.0)))
+        .unwrap();
+    let wire = patch.encode().unwrap();
+    let committed = host
+        .commit(Patch::decode(&wire, &host.snapshot()).unwrap())
+        .await
+        .unwrap();
+    replica
+        .commit_remote(
+            Patch::decode(&wire, &replica.snapshot()).unwrap(),
+            committed.revision,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(replica.snapshot().revision(), committed.revision);
+    assert_eq!(
+        replica.snapshot().page(page).unwrap().page().unwrap().label,
+        "renamed"
+    );
+    assert_eq!(
+        host.snapshot().page(page).unwrap().page().unwrap().label,
+        "renamed"
+    );
+    // The replica can undo through the same patch path the host uses.
+    assert!(replica.undo_patch([committed.revision]).is_ok());
+    // A patch that already landed no longer decodes: its observations moved on.
+    assert!(Patch::decode(&wire, &replica.snapshot()).is_err());
+    // And the replica never moves backwards, even if it is told an old revision.
+    let behind = replica
+        .snapshot()
+        .patch(|edit| edit.set_page(page, PageDraft::new("other", 1200.0, 1800.0)))
+        .unwrap();
+    let behind = Patch::decode(&behind.encode().unwrap(), &replica.snapshot()).unwrap();
+    assert!(
+        replica
+            .commit_remote(behind, committed.revision)
+            .await
+            .is_err()
+    );
+}

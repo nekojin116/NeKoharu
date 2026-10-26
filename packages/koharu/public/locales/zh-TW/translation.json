@@ -360,6 +360,22 @@
     "vramUnavailable": "無法使用",
     "vramValue": "{{value}} 顯示記憶體"
   },
+  "session": {
+    "copied": "已複製",
+    "copy": "複製連結",
+    "copyFailed": "無法複製連結",
+    "hostOffline": "主機已離線 — 編輯已暫停",
+    "hosting": "正在分享此專案",
+    "join": "加入工作階段",
+    "joinAction": "加入",
+    "joinPlaceholder": "貼上邀請連結",
+    "joined": "已加入工作階段",
+    "leave": "離開",
+    "linkCopied": "連結已複製",
+    "linkOffline": "已停止分享",
+    "share": "分享工作階段",
+    "stopShare": "停止分享"
+  },
   "settings": {
     "appearance": {
       "description": "調整工作區外觀，而不改變圖稿的算繪方式。",

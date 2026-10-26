@@ -360,6 +360,22 @@
     "vramUnavailable": "Indisponible",
     "vramValue": "{{value}} de VRAM"
   },
+  "session": {
+    "copied": "Copié",
+    "copy": "Copier le lien",
+    "copyFailed": "Impossible de copier le lien",
+    "hostOffline": "Hôte hors ligne — édition en pause",
+    "hosting": "Partage de ce projet",
+    "join": "Rejoindre une session",
+    "joinAction": "Rejoindre",
+    "joinPlaceholder": "Collez un lien d'invitation",
+    "joined": "Session rejointe",
+    "leave": "Quitter",
+    "linkCopied": "Lien copié",
+    "linkOffline": "Partage arrêté",
+    "share": "Partager la session",
+    "stopShare": "Arrêter le partage"
+  },
   "settings": {
     "appearance": {
       "description": "Adaptez votre espace de travail à la pièce sans modifier le rendu des images.",

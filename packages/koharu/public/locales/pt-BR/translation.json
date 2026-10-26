@@ -360,6 +360,22 @@
     "vramUnavailable": "Indisponível",
     "vramValue": "{{value}} de VRAM"
   },
+  "session": {
+    "copied": "Copiado",
+    "copy": "Copiar link",
+    "copyFailed": "Não foi possível copiar o link",
+    "hostOffline": "Anfitrião offline — edição pausada",
+    "hosting": "Compartilhando este projeto",
+    "join": "Entrar em uma sessão",
+    "joinAction": "Entrar",
+    "joinPlaceholder": "Cole um link de convite",
+    "joined": "Sessão conectada",
+    "leave": "Sair",
+    "linkCopied": "Link copiado",
+    "linkOffline": "Compartilhamento encerrado",
+    "share": "Compartilhar sessão",
+    "stopShare": "Parar compartilhamento"
+  },
   "settings": {
     "appearance": {
       "description": "Adapte o espaço de trabalho ao ambiente sem alterar a renderização da arte.",

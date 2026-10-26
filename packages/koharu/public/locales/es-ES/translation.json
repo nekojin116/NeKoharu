@@ -360,6 +360,22 @@
     "vramUnavailable": "No disponible",
     "vramValue": "{{value}} de VRAM"
   },
+  "session": {
+    "copied": "Copiado",
+    "copy": "Copiar enlace",
+    "copyFailed": "No se pudo copiar el enlace",
+    "hostOffline": "Anfitrión sin conexión: edición en pausa",
+    "hosting": "Compartiendo este proyecto",
+    "join": "Unirse a una sesión",
+    "joinAction": "Unirse",
+    "joinPlaceholder": "Pega un enlace de invitación",
+    "joined": "Sesión abierta",
+    "leave": "Salir",
+    "linkCopied": "Enlace copiado",
+    "linkOffline": "Compartido detenido",
+    "share": "Compartir sesión",
+    "stopShare": "Dejar de compartir"
+  },
   "settings": {
     "appearance": {
       "description": "Adapta el espacio de trabajo a tu entorno sin cambiar cómo se renderiza la ilustración.",

@@ -360,6 +360,22 @@
     "vramUnavailable": "Kullanılamıyor",
     "vramValue": "{{value}} VRAM"
   },
+  "session": {
+    "copied": "Kopyalandı",
+    "copy": "Bağlantıyı kopyala",
+    "copyFailed": "Bağlantı kopyalanamadı",
+    "hostOffline": "Ev sahibi çevrimdış — düzenleme duraklatıldı",
+    "hosting": "Bu proje paylaşılıyor",
+    "join": "Oturuma katıl",
+    "joinAction": "Katıl",
+    "joinPlaceholder": "Davet bağlantısını yapıştır",
+    "joined": "Oturuma katınıldı",
+    "leave": "Ayrıl",
+    "linkCopied": "Bağlantı kopyalandı",
+    "linkOffline": "Paylaşım durduruldu",
+    "share": "Oturumu paylaş",
+    "stopShare": "Paylaşımı durdur"
+  },
   "settings": {
     "appearance": {
       "description": "Çizimin işlenişini değiştirmeden çalışma alanını ortamınıza uyarlayın.",

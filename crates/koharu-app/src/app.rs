@@ -12,6 +12,7 @@ use crate::commands::{
     },
     processing::{JobChannel, Processing},
     project::{CurrentProject, ProjectLibrary},
+    session::{SessionChannel, SessionState},
 };
 
 pub(crate) async fn initialize(handle: AppHandle<CefRuntime>) -> Result<()> {
@@ -121,6 +122,8 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
             application.manage(DownloadChannel::default());
             application.manage(ResourceChannel::default());
             application.manage(ProjectChannel::default());
+            application.manage(SessionChannel::default());
+            application.manage(SessionState::default());
             application.manage(Initialization::default());
 
             let handle = application.handle().clone();

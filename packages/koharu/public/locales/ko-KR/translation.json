@@ -360,6 +360,22 @@
     "vramUnavailable": "사용할 수 없음",
     "vramValue": "VRAM {{value}}"
   },
+  "session": {
+    "copied": "복사됨",
+    "copy": "링크 복사",
+    "copyFailed": "링크를 복사할 수 없습니다",
+    "hostOffline": "호스트가 오프라인 — 편집 일시 중지",
+    "hosting": "이 프로젝트 공유 중",
+    "join": "세션 참가",
+    "joinAction": "참가",
+    "joinPlaceholder": "초대 링크 붙여넣기",
+    "joined": "세션에 참가됨",
+    "leave": "나가기",
+    "linkCopied": "링크가 복사됨",
+    "linkOffline": "공유 중지됨",
+    "share": "세션 공유",
+    "stopShare": "공유 중지"
+  },
   "settings": {
     "appearance": {
       "description": "아트워크 렌더링에는 영향을 주지 않고 작업 공간의 모습을 조정합니다.",

@@ -360,6 +360,22 @@
     "vramUnavailable": "利用不可",
     "vramValue": "VRAM {{value}}"
   },
+  "session": {
+    "copied": "コピーしました",
+    "copy": "リンクをコピー",
+    "copyFailed": "リンクをコピーできませんでした",
+    "hostOffline": "ホストがオフライン — 編集は停止中",
+    "hosting": "このプロジェクトを共有中",
+    "join": "セッションに参加",
+    "joinAction": "参加",
+    "joinPlaceholder": "招待リンクを貼り付けてください",
+    "joined": "セッションに参加中",
+    "leave": "退出",
+    "linkCopied": "リンクをコピーしました",
+    "linkOffline": "共有を停止しました",
+    "share": "セッションを共有",
+    "stopShare": "共有を停止"
+  },
   "settings": {
     "appearance": {
       "description": "アートワークの描画には影響せず、作業環境の見た目を調整します。",

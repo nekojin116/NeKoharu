@@ -360,6 +360,22 @@
     "vramUnavailable": "غير متاح",
     "vramValue": "{{value}} VRAM"
   },
+  "session": {
+    "copied": "تم النسخ",
+    "copy": "نسخ الربط",
+    "copyFailed": "تعذّ النسخ رابط",
+    "hostOffline": "المديح غير متصل — توقف التعديل",
+    "hosting": "مشاركة هذا المشروع",
+    "join": "الانضمال إلى جلسة",
+    "joinAction": "انضمال",
+    "joinPlaceholder": "الصق رابط الدعوة",
+    "joined": "انتصمت إلى جلسة",
+    "leave": "مغادرة",
+    "linkCopied": "تم نسخ الرابط",
+    "linkOffline": "توقفت المشاركة",
+    "share": "مشاركة الجلسة",
+    "stopShare": "إيقاف المشاركة"
+  },
   "settings": {
     "appearance": {
       "description": "طابق مساحة عملك مع الغرفة دون تغيير طريقة عرض الرسومات.",

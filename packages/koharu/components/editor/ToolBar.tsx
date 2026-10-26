@@ -20,6 +20,7 @@ import {
   isBrushTool,
   maxBrushDiameter,
   MIN_BRUSH_DIAMETER,
+  sessionReadOnly,
   useKoharuStore,
   type CanvasTool,
 } from '@/lib/store'
@@ -59,6 +60,11 @@ export function ToolBar() {
   const setTool = useKoharuStore((state) => state.setTool)
   const setBrush = useKoharuStore((state) => state.setBrush)
   const shortcuts = useKoharuStore((state) => state.shortcuts)
+  const readOnly = useKoharuStore((state) => sessionReadOnly(state.session))
+  // Without the host there is nothing to write to: only tools that only look
+  // at the document stay available.
+  const available = (tool: CanvasTool) =>
+    !readOnly || tool === 'select' || tool === 'pan' || tool === 'color_picker'
   const hasBrush = isBrushTool(active)
   const cleanupLayer = page?.layers.find(
     (layer) => layer.type === 'raster' && layer.kind === 'cleanup',
@@ -77,7 +83,7 @@ export function ToolBar() {
                     type='button'
                     variant='ghost'
                     size='icon'
-                    disabled={!page}
+                    disabled={!page || !available(tool)}
                     aria-label={t(`tools.${tool}`)}
                     data-active={active === tool}
                     className='relative text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground'

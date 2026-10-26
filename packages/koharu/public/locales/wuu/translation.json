@@ -360,6 +360,22 @@
     "vramUnavailable": "呒没显存用量数据",
     "vramValue": "{{value}} VRAM"
   },
+  "session": {
+    "copied": "已复制",
+    "copy": "复制链接",
+    "copyFailed": "复制链接弗成功",
+    "hostOffline": "主机弗在线—编辑暂停",
+    "hosting": "勒该分享项目",
+    "join": "加入会话",
+    "joinAction": "加入",
+    "joinPlaceholder": "粘贴邀请链接",
+    "joined": "已加入会话",
+    "leave": "离开",
+    "linkCopied": "链接已复制",
+    "linkOffline": "分享已停止",
+    "share": "分享会话",
+    "stopShare": "停止分享"
+  },
   "settings": {
     "appearance": {
       "description": "照房间个环境调整工作区个外观，图稿个渲染方式弗变。",

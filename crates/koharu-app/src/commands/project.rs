@@ -258,30 +258,120 @@ impl ProjectLibrary {
     }
 }
 
+/// Where a commit goes once it is built.
+#[derive(Clone)]
+pub(crate) enum ProjectMode {
+    /// Ordinary project: the files on disk are the record.
+    Local,
+    /// This machine owns the files and republishes every commit so guests can
+    /// follow them.
+    Host(koharu_session::Broadcaster),
+    /// Another machine owns the files; commits travel there and come back as
+    /// the host's own revision.
+    Guest(koharu_session::Guest),
+}
+
+impl Default for ProjectMode {
+    fn default() -> Self {
+        Self::Local
+    }
+}
+
+/// Sends an edit to the session host and adopts the commit it comes back as.
+/// Everything the host sent before that edit is applied first, so the replica
+/// follows the host's order exactly.
+async fn commit_on_host(
+    session: &mut Session,
+    guest: &koharu_session::Guest,
+    patch: koharu_scene::Patch,
+) -> Result<Commit> {
+    let encoded = patch.encode()?;
+    let sequence = guest
+        .send(encoded)
+        .await
+        .map_err(|reason| anyhow!("{reason}"))?;
+    let mut landed: Option<Commit> = None;
+    loop {
+        let inbound = tokio::time::timeout(std::time::Duration::from_secs(60), guest.next())
+            .await
+            .map_err(|_| anyhow!("the session host did not answer in time"))?
+            .map_err(|reason| {
+                guest.request_resync();
+                anyhow!("{reason}")
+            })?;
+        let Some(inbound) = inbound else {
+            return Err(anyhow!("the session ended before your edit was saved"));
+        };
+        match inbound {
+            koharu_session::Inbound::Commit { revision, patch } => {
+                landed = apply_host_commit(session, revision, &patch).await?;
+            }
+            koharu_session::Inbound::Ack { seq, revision } if seq == sequence => {
+                return landed
+                    .filter(|commit| commit.revision == Revision::new(revision))
+                    .ok_or_else(|| anyhow!("the host did not confirm your edit"));
+            }
+            koharu_session::Inbound::Rejected { seq, reason, .. } if seq == sequence => {
+                guest.request_resync();
+                return Err(anyhow!("{reason}"));
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Applies one commit the host announced, skipping one already reflected here.
+async fn apply_host_commit(
+    session: &mut Session,
+    revision: u64,
+    patch: &[u8],
+) -> Result<Option<Commit>> {
+    let revision = Revision::new(revision);
+    let snapshot = session.snapshot();
+    if revision <= snapshot.revision() {
+        return Ok(None);
+    }
+    let patch = koharu_scene::Patch::decode(patch, &snapshot)?;
+    Ok(Some(session.commit_remote(patch, revision).await?))
+}
+
 pub(crate) struct Project {
     pub(crate) session: Session,
     pub(crate) name: String,
     pub(crate) active_page: Option<EntityId>,
     pub(crate) undo: Vec<Vec<Revision>>,
     pub(crate) redo: Vec<Vec<Revision>>,
+    pub(crate) mode: ProjectMode,
+    /// Where the page last viewed is remembered, for a project in the library.
+    view: Option<PathBuf>,
 }
+
+/// The page a project was last viewed at. It is view state rather than project
+/// content, so it sits beside the stored states instead of in the scene, where
+/// changing it would be an undoable edit shared with every guest.
+#[derive(Serialize, serde::Deserialize)]
+struct View {
+    active_page: EntityId,
+}
+
+const VIEW_FILE: &str = "view.json";
 
 impl Project {
     pub(crate) async fn create(name: String, path: PathBuf) -> Result<Self> {
         let session = Session::create(&path)
             .await
             .with_context(|| format!("failed to create {}", path.display()))?;
-        Ok(Self::new(session, name))
+        Ok(Self::new(session, name).remembering_view(path.join(VIEW_FILE)))
     }
 
     pub(crate) async fn open(name: String, path: PathBuf) -> Result<Self> {
         let session = Session::open(&path)
             .await
             .with_context(|| format!("failed to open {}", path.display()))?;
-        Ok(Self::new(session, name))
+        Ok(Self::new(session, name).remembering_view(path.join(VIEW_FILE)))
     }
 
-    fn new(session: Session, name: String) -> Self {
+    pub(crate) fn new(session: Session, name: String) -> Self {
         let active_page = session.snapshot().pages().next().map(|page| page.id());
         Self {
             session,
@@ -289,7 +379,42 @@ impl Project {
             active_page,
             undo: Vec::new(),
             redo: Vec::new(),
+            mode: ProjectMode::Local,
+            view: None,
         }
+    }
+
+    /// Reopens at the page remembered in `view` and keeps it current from now
+    /// on. A missing, unreadable, or stale record leaves the first page.
+    fn remembering_view(mut self, view: PathBuf) -> Self {
+        let remembered = std::fs::read(&view)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<View>(&bytes).ok());
+        if let Some(View { active_page }) = remembered
+            && self.snapshot().page(active_page).is_ok()
+        {
+            self.active_page = Some(active_page);
+        }
+        self.view = Some(view);
+        self
+    }
+
+    #[must_use]
+    pub(crate) fn with_mode(mut self, mode: ProjectMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
+    pub(crate) fn set_mode(&mut self, mode: ProjectMode) {
+        self.mode = mode;
+    }
+
+    /// Swaps in a freshly fetched copy of the project, dropping local history.
+    pub(crate) fn reload(&mut self, session: Session) {
+        self.session = session;
+        self.undo.clear();
+        self.redo.clear();
+        self.reconcile_page();
     }
 
     pub(crate) fn snapshot(&self) -> Snapshot {
@@ -307,6 +432,14 @@ impl Project {
     pub(crate) fn select_page(&mut self, page: EntityId) -> Result<()> {
         self.snapshot().page(page)?;
         self.active_page = Some(page);
+        if let Some(view) = &self.view {
+            let saved = serde_json::to_vec(&View { active_page: page })
+                .map_err(anyhow::Error::from)
+                .and_then(|bytes| std::fs::write(view, bytes).map_err(Into::into));
+            if let Err(error) = saved {
+                tracing::warn!(%error, "failed to remember the viewed page");
+            }
+        }
         Ok(())
     }
 
@@ -1267,28 +1400,44 @@ impl Project {
 
     pub(crate) async fn undo(&mut self) -> Result<Commit> {
         let revisions = self.undo.pop().ok_or_else(|| anyhow!("nothing to undo"))?;
-        let commit = match self.session.undo_many(revisions.iter().copied()).await {
-            Ok(commit) => commit,
+        let patch = match self.session.undo_patch(revisions.iter().copied()) {
+            Ok(patch) => patch,
             Err(error) => {
                 self.undo.push(revisions);
                 return Err(error.into());
             }
         };
-        self.redo.push(vec![commit.revision]);
-        Ok(commit)
+        match self.commit(patch).await {
+            Ok(commit) => {
+                self.redo.push(vec![commit.revision]);
+                Ok(commit)
+            }
+            Err(error) => {
+                self.undo.push(revisions);
+                Err(error)
+            }
+        }
     }
 
     pub(crate) async fn redo(&mut self) -> Result<Commit> {
         let revisions = self.redo.pop().ok_or_else(|| anyhow!("nothing to redo"))?;
-        let commit = match self.session.undo_many(revisions.iter().copied()).await {
-            Ok(commit) => commit,
+        let patch = match self.session.undo_patch(revisions.iter().copied()) {
+            Ok(patch) => patch,
             Err(error) => {
                 self.redo.push(revisions);
                 return Err(error.into());
             }
         };
-        self.undo.push(vec![commit.revision]);
-        Ok(commit)
+        match self.commit(patch).await {
+            Ok(commit) => {
+                self.undo.push(vec![commit.revision]);
+                Ok(commit)
+            }
+            Err(error) => {
+                self.redo.push(revisions);
+                Err(error)
+            }
+        }
     }
 
     pub(crate) fn record(&mut self, revisions: Vec<Revision>) {
@@ -1327,8 +1476,19 @@ impl Project {
         Ok(Some(self.commit(patch).await?))
     }
 
-    async fn commit(&mut self, patch: koharu_scene::Patch) -> Result<Commit> {
-        Ok(self.session.commit(patch).await?)
+    /// Every edit leaves the project through here: onto disk when local,
+    /// broadcast to guests when hosting, and over the wire when joined.
+    pub(crate) async fn commit(&mut self, patch: koharu_scene::Patch) -> Result<Commit> {
+        match &self.mode {
+            ProjectMode::Local => Ok(self.session.commit(patch).await?),
+            ProjectMode::Host(broadcaster) => {
+                let encoded = patch.encode()?;
+                let commit = self.session.commit(patch).await?;
+                broadcaster.broadcast(commit.revision.get(), &encoded).await;
+                Ok(commit)
+            }
+            ProjectMode::Guest(guest) => commit_on_host(&mut self.session, guest, patch).await,
+        }
     }
 
     pub(crate) fn page(snapshot: &Snapshot, page: EntityId) -> Result<Page> {

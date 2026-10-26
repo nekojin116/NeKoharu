@@ -118,6 +118,17 @@ export function PageRail() {
       ),
   })
 
+  // A project reopens at the page it was left on; bring that page into view
+  // once, rather than leaving the rail at the top.
+  const revealedActive = useRef(false)
+  useEffect(() => {
+    if (revealedActive.current || !active) return
+    const index = visiblePages.findIndex(({ page }) => page.id === active)
+    if (index < 0) return
+    revealedActive.current = true
+    pageVirtualizer.scrollToIndex(index, { align: 'center' })
+  }, [active, pageVirtualizer, visiblePages])
+
   useEffect(
     () => () => {
       selectionRequest.current += 1
@@ -262,7 +273,8 @@ export function PageRail() {
       .catch(() => undefined)
 
   const mergePages = () => {
-    const ordered = pages.filter((page) => selected.includes(page.id))
+    const ordered = pages
+      .filter((page) => selected.includes(page.id))
       .map((page) => page.id)
       // Sort by visual position (left-to-right in the rail) to ensure correct composition order.
       .sort((a, b) => pages.findIndex((p) => p.id === a) - pages.findIndex((p) => p.id === b))
