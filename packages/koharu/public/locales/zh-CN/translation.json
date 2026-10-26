@@ -420,7 +420,11 @@
       "mergeDeleteOriginals": "合并后删除原始页面",
       "mergeDeleteOriginalsDescription": "页面合并为跨页后删除原始页面。关闭时，原始页面会保留，只有文字和清理图层会移动到跨页。",
       "showPageNumbers": "显示页码",
-      "showPageNumbersDescription": "在页面栏中每个页面名称下方显示其位置编号。"
+      "showPageNumbersDescription": "在页面栏中每个页面名称下方显示其位置编号。",
+      "collaboration": "协作",
+      "displayName": "显示名称",
+      "displayNameDescription": "在共享会话中其他人看到的名称。留空将获得一个随机名称。",
+      "randomName": "随机选择名称"
     },
     "generation": {
       "description": "微调语言模型生成译文的方式。",

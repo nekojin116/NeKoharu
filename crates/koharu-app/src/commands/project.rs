@@ -413,6 +413,11 @@ impl Project {
 
     pub(crate) fn set_mode(&mut self, mode: ProjectMode) {
         self.mode = mode;
+        self.present();
+    }
+
+    /// Tells the other participants, if any, who this is and where.
+    pub(crate) fn present(&self) {
         self.mode.present(self.active_page);
     }
 
@@ -439,7 +444,7 @@ impl Project {
     pub(crate) fn select_page(&mut self, page: EntityId) -> Result<()> {
         self.snapshot().page(page)?;
         self.active_page = Some(page);
-        self.mode.present(self.active_page);
+        self.present();
         if let Some(view) = &self.view {
             let saved = serde_json::to_vec(&View { active_page: page })
                 .map_err(anyhow::Error::from)
@@ -458,7 +463,7 @@ impl Project {
             .is_none_or(|page| snapshot.page(page).is_err())
         {
             self.active_page = snapshot.pages().next().map(|page| page.id());
-            self.mode.present(self.active_page);
+            self.present();
         }
     }
 

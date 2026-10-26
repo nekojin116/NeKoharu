@@ -419,7 +419,11 @@
       "pages": "页面",
       "showPageNumbers": "显示页码",
       "showPageNumbersDescription": "勒页面栏里，勒每页名字下头显示伊个位置。",
-      "title": "NeKoharu 功能"
+      "title": "NeKoharu 功能",
+      "collaboration": "协作",
+      "displayName": "显示名字",
+      "displayNameDescription": "勒拉共享会话里别人看到个名字。空脱就会得到一个随机名字。",
+      "randomName": "随机挑一个名字"
     },
     "backToEditor": "返回编辑器",
     "generation": {

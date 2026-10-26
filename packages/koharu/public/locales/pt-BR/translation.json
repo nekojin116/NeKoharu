@@ -420,7 +420,11 @@
       "mergeDeleteOriginals": "Excluir páginas originais após a fusão",
       "mergeDeleteOriginalsDescription": "Remove as páginas de origem quando são fundidas em uma dupla. Quando desativado, as originais permanecem no projeto e apenas suas camadas de texto e limpeza são movidas para a dupla.",
       "showPageNumbers": "Mostrar números de página",
-      "showPageNumbersDescription": "Mostra a posição de cada página abaixo de seu nome na tira de páginas."
+      "showPageNumbersDescription": "Mostra a posição de cada página abaixo de seu nome na tira de páginas.",
+      "collaboration": "Colaboração",
+      "displayName": "Nome de exibição",
+      "displayNameDescription": "Como você aparece para os outros em uma sessão compartilhada. Deixe vazio para receber um nome aleatório.",
+      "randomName": "Escolher um nome aleatório"
     },
     "generation": {
       "description": "Ajuste como os modelos de linguagem geram o texto traduzido.",

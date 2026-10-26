@@ -419,7 +419,11 @@
       "pages": "الصفحات",
       "showPageNumbers": "إظهار أرقام الصفحات",
       "showPageNumbersDescription": "يعرض موضع كل صفحة أسفل اسمها في شريط الصفحات.",
-      "title": "ميزات NeKoharu"
+      "title": "ميزات NeKoharu",
+      "collaboration": "التعاون",
+      "displayName": "الاسم المعروض",
+      "displayNameDescription": "كيف تظهر للآخرين في جلسة مشتركة. اتركه فارغًا للحصول على اسم عشوائي.",
+      "randomName": "اختيار اسم عشوائي"
     },
     "backToEditor": "العودة إلى المحرّر",
     "generation": {
