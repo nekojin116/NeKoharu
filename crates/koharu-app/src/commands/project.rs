@@ -259,9 +259,10 @@ impl ProjectLibrary {
 }
 
 /// Where a commit goes once it is built.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub(crate) enum ProjectMode {
     /// Ordinary project: the files on disk are the record.
+    #[default]
     Local,
     /// This machine owns the files and republishes every commit so guests can
     /// follow them.
@@ -269,12 +270,6 @@ pub(crate) enum ProjectMode {
     /// Another machine owns the files; commits travel there and come back as
     /// the host's own revision.
     Guest(koharu_session::Guest),
-}
-
-impl Default for ProjectMode {
-    fn default() -> Self {
-        Self::Local
-    }
 }
 
 /// Sends an edit to the session host and adopts the commit it comes back as.
