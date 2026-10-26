@@ -567,7 +567,7 @@ describe('greenfield editor', () => {
 
   it('hides the page numbers when the fork preference is off', () => {
     useForkPreferences.setState({
-      preferences: { mergeDeleteOriginals: false, showPageNumbers: false },
+      preferences: { ...forkPreferenceDefaults, showPageNumbers: false },
     })
     const pages: PageSummary[] = [
       {
@@ -2403,10 +2403,32 @@ describe('greenfield editor', () => {
     expect(JSON.parse(window.localStorage.getItem(FORK_PREFERENCES_STORAGE_KEY) ?? '')).toEqual({
       mergeDeleteOriginals: true,
       showPageNumbers: true,
+      colorTheme: 'koharu',
     })
 
     await user.click(screen.getByRole('switch', { name: 'Show page numbers' }))
     expect(useForkPreferences.getState().preferences.showPageNumbers).toBe(false)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+  })
+
+  it('applies and remembers the color theme chosen in appearance settings', async () => {
+    window.localStorage.removeItem(FORK_PREFERENCES_STORAGE_KEY)
+    useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
+    const user = userEvent.setup()
+    useKoharuStore.setState({ settingsOpen: true })
+    render(
+      <ThemeProvider attribute='class'>
+        <SettingsPage />
+      </ThemeProvider>,
+    )
+
+    expect(document.documentElement.dataset.palette).toBe('koharu')
+    await user.click(screen.getByRole('radio', { name: 'AniSwipe' }))
+    expect(screen.getByRole('radio', { name: 'AniSwipe' })).toHaveAttribute('aria-checked', 'true')
+    expect(document.documentElement.dataset.palette).toBe('aniswipe')
+    expect(
+      JSON.parse(window.localStorage.getItem(FORK_PREFERENCES_STORAGE_KEY) ?? ''),
+    ).toMatchObject({ colorTheme: 'aniswipe' })
     useForkPreferences.setState({ preferences: { ...forkPreferenceDefaults } })
   })
 
