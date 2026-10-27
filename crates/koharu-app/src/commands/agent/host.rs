@@ -416,6 +416,8 @@ impl Host for KoharuHost {
                         AgentStrokeJoin::Miter => koharu_scene::StrokeJoin::Miter,
                         AgentStrokeJoin::Bevel => koharu_scene::StrokeJoin::Bevel,
                     }),
+                    outer_stroke_color: arguments.outer_stroke_color,
+                    outer_stroke_width: arguments.outer_stroke_width,
                     alignment: arguments.alignment.map(Into::into),
                     writing_mode: arguments.writing_mode.map(Into::into),
                 };
@@ -818,6 +820,10 @@ struct SetTypography {
     stroke_method: Option<AgentStrokeMethod>,
     stroke_position: Option<AgentStrokePosition>,
     stroke_join: Option<AgentStrokeJoin>,
+    /// Color of a second outline outside the first.
+    outer_stroke_color: Option<[u8; 4]>,
+    /// Width of the second outline in pixels; omit or 0 for none.
+    outer_stroke_width: Option<f32>,
     alignment: Option<AgentTextAlignment>,
     writing_mode: Option<AgentWritingMode>,
 }
