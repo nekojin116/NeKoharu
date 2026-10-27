@@ -42,7 +42,7 @@ use crate::{
     },
     images::{DecodedImage, ImageCache, decode},
     script::{is_chinese_or_japanese_text, shaping_direction_for_text},
-    text_renderer::{StrokeOptions, TextNodeDescriptor, TextRenderer},
+    text_renderer::{OuterStroke, StrokeOptions, TextNodeDescriptor, TextRenderer},
 };
 
 const MAX_SURFACE_DIMENSION: u32 = 32_768;
@@ -1471,6 +1471,22 @@ fn resolve_stroke(typography: Option<&Typography>) -> Option<StrokeOptions> {
     Some(StrokeOptions {
         color: typography.stroke_color.unwrap_or([u8::MAX; 4]),
         width_px,
+        method: typography
+            .stroke_method
+            .unwrap_or(koharu_scene::StrokeMethod::Expansion),
+        position: typography
+            .stroke_position
+            .unwrap_or(koharu_scene::StrokePosition::Outside),
+        join: typography
+            .stroke_join
+            .unwrap_or(koharu_scene::StrokeJoin::Round),
+        outer: typography
+            .outer_stroke_width
+            .filter(|width| *width > 0.0)
+            .map(|width_px| OuterStroke {
+                color: typography.outer_stroke_color.unwrap_or([0, 0, 0, u8::MAX]),
+                width_px,
+            }),
     })
 }
 
@@ -1731,6 +1747,11 @@ mod tests {
             color: None,
             stroke_color: None,
             stroke_width: None,
+            stroke_method: None,
+            stroke_position: None,
+            stroke_join: None,
+            outer_stroke_color: None,
+            outer_stroke_width: None,
             alignment: None,
             writing_mode: Some(koharu_scene::WritingMode::Vertical),
             extensions: BTreeMap::new(),
@@ -1767,6 +1788,11 @@ mod tests {
             color: None,
             stroke_color: None,
             stroke_width: None,
+            stroke_method: None,
+            stroke_position: None,
+            stroke_join: None,
+            outer_stroke_color: None,
+            outer_stroke_width: None,
             alignment: None,
             writing_mode: Some(koharu_scene::WritingMode::Vertical),
             extensions: BTreeMap::new(),

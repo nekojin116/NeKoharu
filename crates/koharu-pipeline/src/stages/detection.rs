@@ -419,6 +419,11 @@ fn write_region<'a>(
                 .and_then(|value| value.stroke_color)
                 .map(|color| [color[0], color[1], color[2], u8::MAX]),
             stroke_width: inferred.and_then(|value| value.stroke_width),
+            stroke_method: Some(koharu_scene::StrokeMethod::Contour),
+            stroke_position: None,
+            stroke_join: None,
+            outer_stroke_color: None,
+            outer_stroke_width: None,
             alignment: None,
             writing_mode: inferred.map(|value| value.writing_mode),
             extensions: Default::default(),
