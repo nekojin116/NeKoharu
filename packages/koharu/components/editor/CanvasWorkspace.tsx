@@ -599,12 +599,12 @@ export function CanvasWorkspace() {
       const { zoom } = useKoharuStore.getState().camera
       setDraft(null)
       if (current.frame.width < 4 / zoom || current.frame.height < 4 / zoom) return
-      void call(commands.addOcrBox, current.frame, current.cleanup)
-        .then((result) => {
-          selectLayers([result.layer])
-          return refresh(projectKey, pagesKey, pageKey)
-        })
-        .catch(() => undefined)
+      // Cleaning detects the lettering in the box first, so its text layers
+      // arrive with the job rather than with this call.
+      const operation = current.cleanup
+        ? call(commands.cleanOcrBox, current.frame)
+        : call(commands.addOcrBox, current.frame).then((result) => selectLayers([result.layer]))
+      void operation.then(() => refresh(projectKey, pagesKey, pageKey)).catch(() => undefined)
     } else if (current.kind === 'paint' || current.kind === 'erase' || current.kind === 'inpaint') {
       strokeUpdates.commit()
       try {

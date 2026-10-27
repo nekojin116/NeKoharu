@@ -54,7 +54,14 @@ export const commands = {
 	getCanvasPageResource: (page: EntityId, revision: Revision, resource: string) => __TAURI_INVOKE<CanvasBytes>("get_canvas_page_resource", { page, revision, resource }),
 	addPointText: (point: Point) => __TAURI_INVOKE<LayerCommit>("add_point_text", { point }),
 	addTextBox: (frame: Frame) => __TAURI_INVOKE<LayerCommit>("add_text_box", { frame }),
-	addOcrBox: (frame: Frame, cleanup: boolean) => __TAURI_INVOKE<LayerCommit>("add_ocr_box", { frame, cleanup }),
+	addOcrBox: (frame: Frame) => __TAURI_INVOKE<LayerCommit>("add_ocr_box", { frame }),
+	/**
+	 *  Reads and cleans the text inside a box the user drew. Detection runs on the
+	 *  box first, so each piece of lettering in it gets its own text layer and
+	 *  only the lettering is cleaned; a box it finds nothing in is read and
+	 *  cleaned whole.
+	 */
+	cleanOcrBox: (frame: Frame) => __TAURI_INVOKE<JobId>("clean_ocr_box", { frame }),
 	commitPaint: (expectedRevision: Revision, layer: EntityId | null, points: Point[], brush: PaintBrush) => __TAURI_INVOKE<LayerCommit>("commit_paint", { expectedRevision, layer, points, brush }),
 	commitErase: (expectedRevision: Revision, layer: EntityId, points: Point[], diameter: number) => __TAURI_INVOKE<LayerCommit>("commit_erase", { expectedRevision, layer, points, diameter }),
 	commitTransform: (expectedRevision: Revision, elements: TransformFrame[]) => __TAURI_INVOKE<Revision | null>("commit_transform", { expectedRevision, elements }),

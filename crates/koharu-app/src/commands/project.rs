@@ -1811,7 +1811,7 @@ impl Project {
         Ok(roots)
     }
 
-    fn geometry_from_frame(frame: Frame) -> Result<SceneGeometry> {
+    pub(crate) fn geometry_from_frame(frame: Frame) -> Result<SceneGeometry> {
         if !frame.x.is_finite()
             || !frame.y.is_finite()
             || !frame.width.is_finite()
