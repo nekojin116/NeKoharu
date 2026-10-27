@@ -1001,6 +1001,31 @@ describe('greenfield editor', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-2'))
+
+    // A/D and PageUp/PageDown turn pages too, but not while typing.
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Filter pages' }), { key: 'd' })
+    expect(selectPage).toHaveBeenCalledTimes(3)
+
+    fireEvent.keyDown(window, { key: 'd' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-3'))
+    await waitFor(() =>
+      expect(queryClient.getQueryData<ProjectInfo>(projectKey)?.active_page).toBe('page-3'),
+    )
+
+    fireEvent.keyDown(window, { key: 'PageUp' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-2'))
+    await waitFor(() =>
+      expect(queryClient.getQueryData<ProjectInfo>(projectKey)?.active_page).toBe('page-2'),
+    )
+
+    fireEvent.keyDown(window, { key: 'A' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page'))
+    await waitFor(() =>
+      expect(queryClient.getQueryData<ProjectInfo>(projectKey)?.active_page).toBe('page'),
+    )
+
+    fireEvent.keyDown(window, { key: 'PageDown' })
+    await waitFor(() => expect(selectPage).toHaveBeenLastCalledWith('page-2'))
   })
 
   it('scrolls the page rail to the active page during keyboard navigation', async () => {
