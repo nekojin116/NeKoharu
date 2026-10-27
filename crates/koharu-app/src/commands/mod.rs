@@ -107,6 +107,7 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             canvas::add_point_text,
             canvas::add_text_box,
             canvas::add_ocr_box,
+            canvas::clean_ocr_box,
             canvas::commit_paint,
             canvas::commit_erase,
             canvas::commit_transform,

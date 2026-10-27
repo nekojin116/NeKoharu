@@ -22,7 +22,10 @@ Use **Select** to pick editable layers; hold `Shift`, `Ctrl`, or `Command` to ad
   <Tab title='OCR'>
     Drag a box with **OCR** to recognize text that detection missed, such as sound effects. Koharu
     creates a text layer for that box, then recognizes and translates the text inside it. **OCR and
-    clean** does the same and also cleans the area under the box.
+    clean** first runs detection inside the box, so each sound effect or line of text it finds gets
+    its own text layer, and only that lettering is cleaned rather than the whole box. Text that was
+    already read keeps its layer. If detection finds nothing in the box, the whole box is read and
+    cleaned.
   </Tab>
   <Tab title='Brush and Eraser'>
     **Brush** paints on the selected raster layer with the chosen color and diameter, or creates a
