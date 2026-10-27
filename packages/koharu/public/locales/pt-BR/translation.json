@@ -82,6 +82,20 @@
     "fatalTitle": "O Koharu não pôde continuar",
     "tryAgain": "Tentar novamente"
   },
+  "find": {
+    "matchCase": "Diferenciar maiúsculas e minúsculas",
+    "noResults": "Nenhuma tradução contém este texto.",
+    "page": "Página {{number}}",
+    "placeholder": "Localizar nas traduções",
+    "replace": "Substituir",
+    "replaceAll": "Substituir tudo",
+    "replacePlaceholder": "Substituir por",
+    "searching": "Localizando…",
+    "summary": "{{count}} ocorrências em {{pages}} página(s)",
+    "summary_one": "{{count}} ocorrência em {{pages}} página(s)",
+    "summary_other": "{{count}} ocorrências em {{pages}} página(s)",
+    "title": "Localizar"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} filtros ativos",
     "activeFilterCount_one": "{{count}} filtro ativo",
@@ -503,6 +517,9 @@
     "shortcuts": {
       "description": "Atalhos de uma tecla ficam disponíveis quando nenhum campo de texto está em foco.",
       "inputLabel": "Atalho de {{action}}",
+      "nextPage": "Próxima página",
+      "pages": "Páginas",
+      "previousPage": "Página anterior",
       "title": "Atalhos",
       "tools": "Ferramentas"
     },

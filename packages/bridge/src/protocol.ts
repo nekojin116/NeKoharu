@@ -30,6 +30,13 @@ export const commands = {
 	mergePages: (pages: EntityId[], deleteOriginals: boolean) => __TAURI_INVOKE<EntityId>("merge_pages", { pages, deleteOriginals }),
 	setSourceText: (layer: EntityId, text: string) => __TAURI_INVOKE<null>("set_source_text", { layer, text }),
 	setTranslation: (layer: EntityId, text: string | null) => __TAURI_INVOKE<null>("set_translation", { layer, text }),
+	/**  The text layers whose translation contains `query`, in project order. */
+	findTranslations: (query: string, matchCase: boolean) => __TAURI_INVOKE<TranslationMatch[]>("find_translations", { query, matchCase }),
+	/**
+	 *  Replaces `query` in translations as one undo step, everywhere or only in
+	 *  `layers`, and returns how many occurrences were replaced.
+	 */
+	replaceTranslations: (query: string, replacement: string, matchCase: boolean, layers: EntityId[] | null) => __TAURI_INVOKE<number>("replace_translations", { query, replacement, matchCase, layers }),
 	setTypography: (updates: TypographyUpdate[]) => __TAURI_INVOKE<null>("set_typography", { updates }),
 	setGeometry: (updates: GeometryUpdate[]) => __TAURI_INVOKE<null>("set_geometry", { updates }),
 	setVisibility: (layers: EntityId[], visible: boolean | null, opacity: number | null) => __TAURI_INVOKE<null>("set_visibility", { layers, visible, opacity }),
@@ -568,6 +575,18 @@ export type TranslationConfig = {
 	instructions: string | null,
 	combine_pages?: boolean,
 	max_pages_per_request?: number,
+};
+
+/**  A text layer whose translation contains the searched text. */
+export type TranslationMatch = {
+	page: EntityId,
+	/**  The page's position in the project, from zero. */
+	page_index: number,
+	layer: EntityId,
+	/**  The layer's whole translation. */
+	text: string,
+	/**  How many times the searched text occurs in it. */
+	count: number,
 };
 
 export type TypesettingConfig = {

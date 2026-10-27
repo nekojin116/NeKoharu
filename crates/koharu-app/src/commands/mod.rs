@@ -82,6 +82,8 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             editing::merge_pages,
             editing::set_source_text,
             editing::set_translation,
+            editing::find_translations,
+            editing::replace_translations,
             editing::set_typography,
             editing::set_geometry,
             editing::set_visibility,

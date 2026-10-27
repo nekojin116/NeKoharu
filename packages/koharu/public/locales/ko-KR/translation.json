@@ -82,6 +82,20 @@
     "fatalTitle": "Koharu를 계속 실행할 수 없습니다",
     "tryAgain": "다시 시도"
   },
+  "find": {
+    "matchCase": "대소문자 구분",
+    "noResults": "이 텍스트가 포함된 번역이 없습니다.",
+    "page": "{{number}}페이지",
+    "placeholder": "번역에서 찾기",
+    "replace": "바꾸기",
+    "replaceAll": "모두 바꾸기",
+    "replacePlaceholder": "바꿀 내용",
+    "searching": "찾는 중…",
+    "summary": "{{pages}}개 페이지에서 {{count}}건",
+    "summary_one": "{{pages}}개 페이지에서 {{count}}건",
+    "summary_other": "{{pages}}개 페이지에서 {{count}}건",
+    "title": "찾기"
+  },
   "fontPicker": {
     "activeFilterCount": "활성 필터 {{count}}개",
     "activeFilterCount_one": "활성 필터 {{count}}개",
@@ -503,6 +517,9 @@
     "shortcuts": {
       "description": "텍스트 필드에 포커스가 없을 때 단일 키 단축키를 사용할 수 있습니다.",
       "inputLabel": "{{action}} 단축키",
+      "nextPage": "다음 페이지",
+      "pages": "페이지",
+      "previousPage": "이전 페이지",
       "title": "단축키",
       "tools": "도구"
     },
