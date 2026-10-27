@@ -524,6 +524,12 @@ export type StartupState = {
 	canvas: CanvasState,
 };
 
+export type StrokeJoin = "round" | "miter" | "bevel";
+
+export type StrokeMethod = "expansion" | "contour";
+
+export type StrokePosition = "outside" | "center" | "inside";
+
 export type TextAlignment = "Start" | "Center" | "End" | "Justify";
 
 export type TextContent = {
@@ -570,6 +576,9 @@ export type Typography = {
 	color: [number, number, number, number] | null,
 	stroke_color: [number, number, number, number] | null,
 	stroke_width: number | null,
+	stroke_method: StrokeMethod | null,
+	stroke_position: StrokePosition | null,
+	stroke_join: StrokeJoin | null,
 	alignment: TextAlignment | null,
 	writing_mode: WritingMode | null,
 };

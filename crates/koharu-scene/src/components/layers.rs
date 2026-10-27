@@ -114,6 +114,32 @@ pub enum FontStyle {
 }
 
 #[revisioned(revision = 1)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StrokeMethod {
+    Expansion,
+    Contour,
+}
+
+#[revisioned(revision = 1)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StrokePosition {
+    Outside,
+    Center,
+    Inside,
+}
+
+#[revisioned(revision = 1)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StrokeJoin {
+    Round,
+    Miter,
+    Bevel,
+}
+
+#[revisioned(revision = 2)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
 pub struct Typography {
     pub origin: Origin,
@@ -128,6 +154,12 @@ pub struct Typography {
     pub alignment: Option<TextAlignment>,
     pub writing_mode: Option<WritingMode>,
     pub extensions: BTreeMap<String, String>,
+    #[revision(start = 2)]
+    pub stroke_method: Option<StrokeMethod>,
+    #[revision(start = 2)]
+    pub stroke_position: Option<StrokePosition>,
+    #[revision(start = 2)]
+    pub stroke_join: Option<StrokeJoin>,
 }
 
 impl Component for Typography {
