@@ -109,7 +109,10 @@ const defaultTypography: Typography = {
   stroke_width: 0,
   alignment: null,
   writing_mode: null,
+  line_spacing: null,
 }
+
+const defaultLineSpacing = 1.2
 
 export function Inspector() {
   const { t } = useTranslation()
@@ -134,9 +137,11 @@ export function Inspector() {
 function TypeInspector() {
   const { t } = useTranslation()
   const borderWidthId = useId()
+  const lineSpacingId = useId()
   const page = usePage().data
   const selectedIds = useKoharuStore((state) => state.selectedLayers)
   const availableFonts = useFonts().data
+  const fontSizes = useKoharuStore((state) => state.layerFontSizes)
   const expandedSelection = page ? expandLayerSelection(page.layers, selectedIds) : []
   const selected =
     page?.layers.filter(isTextLayer).filter((layer) => expandedSelection.includes(layer.id)) ?? []
@@ -179,7 +184,12 @@ function TypeInspector() {
       ? available
       : [...available, defaultFont]
   }, [availableFonts])
-  const size = Math.round((typography.size ?? 24) * 100) / 100
+  const fittedSize = current ? fontSizes[current.id] : undefined
+  // Auto-fit shows the size the renderer chose so stepping starts from what is on the page.
+  const size =
+    Math.round(((typography.auto_fit ? fittedSize : undefined) ?? typography.size ?? 24) * 10) /
+    10
+  const lineSpacing = Math.round((typography.line_spacing ?? defaultLineSpacing) * 100)
   const weight = typography.font_weight ?? 400
   const selectedFamily = findFontFamily(families, typography.preferred_font ?? defaultFont.name)
   const styles = usableFontStyles(selectedFamily)
@@ -378,7 +388,7 @@ function TypeInspector() {
           </InspectorField>
         </div>
 
-        <div className='grid min-w-0 grid-cols-[2.75rem_minmax(5.5rem,1fr)] items-end gap-1.5'>
+        <div className='grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_minmax(0,1fr)] items-end gap-1.5'>
           <InspectorField label={t('inspector.border')}>
             <ColorWell
               label={t('inspector.borderColor')}
@@ -428,6 +438,34 @@ function TypeInspector() {
                 </NumberFieldDecrement>
                 <NumberFieldInput aria-label={t('inspector.borderWidth')} />
                 <NumberFieldIncrement aria-label={t('inspector.increaseBorderWidth')}>
+                  <Plus />
+                </NumberFieldIncrement>
+              </NumberFieldGroup>
+            </NumberField>
+          </InspectorField>
+          <InspectorField label={t('inspector.leading')}>
+            <NumberField
+              id={lineSpacingId}
+              name='line-spacing'
+              className='min-w-0'
+              disabled={disabled}
+              value={lineSpacing}
+              min={50}
+              max={300}
+              step={5}
+              format={{ style: 'unit', unit: 'percent', maximumFractionDigits: 0 }}
+              onValueChange={(next) => {
+                if (next !== null && next >= 50 && next <= 300) {
+                  apply((value) => ({ ...value, line_spacing: next / 100 }))
+                }
+              }}
+            >
+              <NumberFieldGroup>
+                <NumberFieldDecrement aria-label={t('inspector.decreaseLeading')}>
+                  <Minus />
+                </NumberFieldDecrement>
+                <NumberFieldInput aria-label={t('inspector.lineSpacing')} />
+                <NumberFieldIncrement aria-label={t('inspector.increaseLeading')}>
                   <Plus />
                 </NumberFieldIncrement>
               </NumberFieldGroup>
@@ -968,7 +1006,7 @@ function FontSizeField({
   const [draft, setDraft] = useState<number | null>(value)
 
   useEffect(() => {
-    setDraft(autoFit ? null : value)
+    setDraft(value)
   }, [autoFit, value])
 
   const select = (choice: string) => {
@@ -986,9 +1024,9 @@ function FontSizeField({
 
   const commit = (next: number | null) => {
     if (next !== null && next > 0 && next <= 300) {
-      onChange(next)
+      if (next !== value) onChange(next)
     } else {
-      setDraft(autoFit ? null : value)
+      setDraft(value)
     }
   }
 
@@ -1001,17 +1039,25 @@ function FontSizeField({
       value={draft}
       min={0.5}
       max={300}
-      step={0.5}
+      step={1}
+      smallStep={0.5}
       onValueChange={setDraft}
       onValueCommitted={commit}
     >
       <NumberFieldGroup>
+        <NumberFieldDecrement aria-label={t('inspector.decreaseFontSize')}>
+          <Minus />
+        </NumberFieldDecrement>
         <NumberFieldInput
           data-testid='type-size'
+          data-auto={autoFit}
           aria-label={t('inspector.fontSize')}
-          placeholder={t('inspector.auto')}
-          className='px-2 text-left'
+          title={autoFit ? t('inspector.autoFit') : undefined}
+          className='min-w-0 px-1 data-[auto=true]:text-muted-foreground'
         />
+        <NumberFieldIncrement aria-label={t('inspector.increaseFontSize')}>
+          <Plus />
+        </NumberFieldIncrement>
         <DropdownMenu>
           <DropdownMenuTrigger
             disabled={disabled}

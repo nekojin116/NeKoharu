@@ -8,11 +8,12 @@ import { CanvasCommandBar } from '@/components/editor/CanvasCommandBar'
 import { CanvasOverlay } from '@/components/editor/CanvasOverlay'
 import { SessionNotice } from '@/components/editor/SessionBar'
 import { StatusBar } from '@/components/editor/StatusBar'
+import { TextEditOverlay } from '@/components/editor/TextEditOverlay'
 import { ToolBar } from '@/components/editor/ToolBar'
 import { useCanvas } from '@/components/editor/useCanvas'
 import { call } from '@/lib/backend'
 import { rememberColor } from '@/lib/colorHistory'
-import { expandLayerSelection } from '@/lib/document'
+import { expandLayerSelection, isTextLayer } from '@/lib/document'
 import {
   controlFrame,
   draftFrame,
@@ -48,7 +49,13 @@ import {
   type CanvasTool,
 } from '@/lib/store'
 import { prefetchCanvasPages, workspaceColor, type CanvasColor } from '@koharu/bridge/canvas'
-import { commands, type Frame, type Point, type TransformFrame } from '@koharu/bridge/protocol'
+import {
+  commands,
+  type EntityId,
+  type Frame,
+  type Point,
+  type TransformFrame,
+} from '@koharu/bridge/protocol'
 import { Button } from '@koharu/ui/components/button'
 
 const BRUSH_DIAMETER_STEP = 4
@@ -116,6 +123,7 @@ export function CanvasWorkspace() {
   const [draft, setDraft] = useState<Frame | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [cursor, setCursor] = useState<Point | null>(null)
+  const [editingText, setEditingText] = useState<EntityId | null>(null)
   const colorSampling = useColorSampling()
 
   const page = usePage().data
@@ -148,6 +156,10 @@ export function CanvasWorkspace() {
   const cleanupLayer = page?.layers.find(
     (layer) => layer.type === 'raster' && layer.kind === 'cleanup',
   )
+  const editedLayer = editingText
+    ? page?.layers.filter(isTextLayer).find((layer) => layer.id === editingText)
+    : undefined
+  const editedFrame = editedLayer ? controlFrame(editedLayer, layerFrames) : null
 
   const enqueue = useCallback(<Result,>(operation: () => Promise<Result>): Promise<Result> => {
     const pending = commandQueue.current.then(operation)
@@ -353,6 +365,17 @@ export function CanvasWorkspace() {
   }, [fitCanvas, fitCanvasRequest])
 
   useEffect(() => cancelGesture, [cancelGesture, canvasGeneration, canvasRevision, page?.id, tool])
+
+  useEffect(() => setEditingText(null), [page?.id])
+
+  const editText = (point: Point) => {
+    if (!page || readOnly) return false
+    const target = hitTestLayers(page.layers, point, layerFrames)
+    if (!target || !isTextLayer(target)) return false
+    selectLayers([target.id])
+    setEditingText(target.id)
+    return true
+  }
 
   useEffect(() => {
     const editable = (target: EventTarget | null) =>
@@ -730,6 +753,10 @@ export function CanvasWorkspace() {
               gesture.current = { kind: 'move', pointer: event.pointerId, start: point, originals }
               beginTransform(originals)
             } else if (tool === 'text') {
+              if (editText(point)) {
+                event.preventDefault()
+                return
+              }
               const frame = draftFrame(point, point)
               gesture.current = { kind: 'text', pointer: event.pointerId, start: point, frame }
               setDraft(frame)
@@ -840,6 +867,12 @@ export function CanvasWorkspace() {
             }
           }}
           onPointerCancel={() => cancelGesture()}
+          onDoubleClick={(event) => {
+            if (!page || canvasState.status !== 'ready' || tool !== 'select') return
+            if (event.target instanceof Element && event.target.closest('[data-canvas-control]'))
+              return
+            editText(clientPagePoint(event.clientX, event.clientY))
+          }}
           onPointerLeave={(event) => {
             if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
               setHovered(null)
@@ -934,6 +967,14 @@ export function CanvasWorkspace() {
               onTransformStart={beginTransform}
               onTransformFrame={updateTransform}
               onTransformEnd={finishTransform}
+            />
+          )}
+          {editedLayer && editedFrame && (
+            <TextEditOverlay
+              key={editedLayer.id}
+              layer={editedLayer}
+              frame={editedFrame}
+              onClose={() => setEditingText(null)}
             />
           )}
           {page && canvasState.status === 'error' && (

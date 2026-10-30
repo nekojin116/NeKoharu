@@ -101,6 +101,7 @@ const textLayer: Layer = {
     stroke_width: 0,
     alignment: 'Center',
     writing_mode: null,
+    line_spacing: null,
   },
   layout: 'paragraph',
   automatic_region: null,
@@ -1258,6 +1259,7 @@ describe('greenfield editor', () => {
   it('switches tools and applies typography from the contextual inspector', async () => {
     const user = userEvent.setup()
     installProject()
+    useKoharuStore.setState({ layerFontSizes: { element: 17.25 } })
     const setTypography = vi.spyOn(commands, 'setTypography').mockResolvedValue(null)
     render(
       <TooltipProvider>
@@ -1273,9 +1275,16 @@ describe('greenfield editor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Text' }))
     expect(screen.getByTestId('type-inspector')).toBeInTheDocument()
     expect(screen.getByTestId('type-font-picker')).toHaveTextContent('Noto Sans')
-    expect(screen.getByTestId('type-size')).toHaveValue('')
-    expect(screen.getByTestId('type-size')).toHaveAttribute('placeholder', 'Auto')
+    expect(screen.getByTestId('type-size')).toHaveValue('17.3')
     expect(screen.getByRole('combobox', { name: 'Text direction' })).toHaveTextContent('Auto')
+    await user.click(screen.getByRole('button', { name: 'Increase font size' }))
+    await waitFor(() =>
+      expect(setTypography).toHaveBeenCalledWith([
+        expect.objectContaining({
+          typography: expect.objectContaining({ size: 18.3, auto_fit: false }),
+        }),
+      ]),
+    )
     await user.clear(screen.getByTestId('type-size'))
     await user.type(screen.getByTestId('type-size'), '18')
     await user.tab()

@@ -51,6 +51,7 @@ const DEFAULT_RETAINED_NODES: usize = 2_048;
 const MAX_RESOURCE_READS: usize = 8;
 const ASSETS_KIND: &str = "dev.koharu.assets";
 const MINIMUM_FONT_SIZE: f32 = 9.0;
+const DEFAULT_LINE_SPACING: f32 = 1.2;
 
 #[derive(Clone)]
 pub struct Renderer {
@@ -830,7 +831,10 @@ impl Traversal<'_> {
                 .and_then(|value| value.color)
                 .unwrap_or([0, 0, 0, 255]),
             stroke: resolve_stroke(typography.as_ref()),
-            line_height: 1.2,
+            line_height: typography
+                .as_ref()
+                .and_then(|value| value.line_spacing)
+                .unwrap_or(DEFAULT_LINE_SPACING),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             text_inset: [4.0; 4],
@@ -1734,6 +1738,7 @@ mod tests {
             alignment: None,
             writing_mode: Some(koharu_scene::WritingMode::Vertical),
             extensions: BTreeMap::new(),
+            line_spacing: None,
         };
         let bounds = LayoutBox {
             x: 0.0,
@@ -1770,6 +1775,7 @@ mod tests {
             alignment: None,
             writing_mode: Some(koharu_scene::WritingMode::Vertical),
             extensions: BTreeMap::new(),
+            line_spacing: None,
         };
         let bounds = LayoutBox {
             x: 0.0,

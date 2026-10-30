@@ -113,7 +113,7 @@ pub enum FontStyle {
     Oblique,
 }
 
-#[revisioned(revision = 1)]
+#[revisioned(revision = 2)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
 pub struct Typography {
     pub origin: Origin,
@@ -128,6 +128,9 @@ pub struct Typography {
     pub alignment: Option<TextAlignment>,
     pub writing_mode: Option<WritingMode>,
     pub extensions: BTreeMap<String, String>,
+    /// Baseline-to-baseline distance as a multiple of the font size; `None` uses the renderer default.
+    #[revision(start = 2)]
+    pub line_spacing: Option<f32>,
 }
 
 impl Component for Typography {
@@ -148,6 +151,9 @@ impl Component for Typography {
             || self
                 .stroke_width
                 .is_some_and(|width| !width.is_finite() || width < 0.0)
+            || self
+                .line_spacing
+                .is_some_and(|spacing| !(0.1..=10.0).contains(&spacing))
         {
             return Err(Error::invalid("typography intent is invalid"));
         }

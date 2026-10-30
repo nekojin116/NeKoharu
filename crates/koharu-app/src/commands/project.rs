@@ -176,6 +176,7 @@ pub struct Typography {
     pub stroke_width: Option<f32>,
     pub alignment: Option<koharu_scene::TextAlignment>,
     pub writing_mode: Option<koharu_scene::WritingMode>,
+    pub line_spacing: Option<f32>,
 }
 
 pub(crate) struct CurrentProject {
@@ -859,6 +860,7 @@ impl Project {
                     alignment: None,
                     writing_mode: None,
                     extensions: Default::default(),
+                    line_spacing: None,
                 },
             )?;
             layer = Some(added_layer);
@@ -1000,6 +1002,7 @@ impl Project {
                     },
                     writing_mode: None,
                     extensions: Default::default(),
+                    line_spacing: None,
                 },
             )?;
             Ok(())
@@ -1092,6 +1095,7 @@ impl Project {
                         alignment: update.typography.alignment,
                         writing_mode: update.typography.writing_mode,
                         extensions: Default::default(),
+                        line_spacing: update.typography.line_spacing,
                     },
                 )?;
             }
@@ -1674,6 +1678,7 @@ impl Project {
             stroke_width: typography.stroke_width,
             alignment: typography.alignment,
             writing_mode,
+            line_spacing: typography.line_spacing,
         }
     }
 
@@ -2114,6 +2119,7 @@ mod tests {
             alignment: None,
             writing_mode: Some(WritingMode::Vertical),
             extensions: Default::default(),
+            line_spacing: None,
         };
 
         assert_eq!(
@@ -2335,6 +2341,7 @@ mod tests {
                     alignment: None,
                     writing_mode: Some(WritingMode::Vertical),
                     extensions: Default::default(),
+                    line_spacing: None,
                 },
             )
             .unwrap();
@@ -2362,6 +2369,7 @@ mod tests {
                     alignment: None,
                     writing_mode: Some(WritingMode::Vertical),
                     extensions: Default::default(),
+                    line_spacing: None,
                 },
             )
             .unwrap();

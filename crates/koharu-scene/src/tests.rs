@@ -119,7 +119,6 @@ async fn built_in_component_schema_revisions_are_explicit() {
             schema::<OcrAnalysis>(),
             schema::<Group>(),
             schema::<TextGroup>(),
-            schema::<Typography>(),
             schema::<Region>(),
             schema::<DetectionAnalysis>(),
             schema::<EntityOrigin>(),
@@ -127,10 +126,11 @@ async fn built_in_component_schema_revisions_are_explicit() {
             schema::<crate::components::Assets>(),
             schema::<Relation>(),
         ],
-        [1; 17]
+        [1; 16]
     );
     assert_eq!(schema::<Page>(), 2);
     assert_eq!(schema::<TextLayout>(), 2);
+    assert_eq!(schema::<Typography>(), 2);
 }
 
 #[tokio::test]
@@ -1163,6 +1163,7 @@ async fn independent_pipeline_components_rebase() {
                     alignment: Some(TextAlignment::Center),
                     writing_mode: None,
                     extensions: BTreeMap::new(),
+                    line_spacing: None,
                 },
             )
         })

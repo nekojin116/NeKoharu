@@ -75,6 +75,7 @@ const startupState = (): StartupState => ({
     generation: 0,
     size: [0, 0],
     element_frames: [],
+    text_sizes: [],
   },
 })
 

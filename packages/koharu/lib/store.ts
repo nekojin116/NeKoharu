@@ -68,6 +68,7 @@ interface KoharuStore {
   canvasSize: [number, number]
   fitCanvasRequest: number
   layerFrames: Record<EntityId, Frame>
+  layerFontSizes: Record<EntityId, number>
   selectedLayers: EntityId[]
   copiedTextLayers: EntityId[]
   selectedPages: EntityId[]
@@ -122,6 +123,7 @@ export const useKoharuStore = create<KoharuStore>()((set) => ({
   canvasSize: [0, 0],
   fitCanvasRequest: 0,
   layerFrames: {},
+  layerFontSizes: {},
   selectedLayers: [],
   copiedTextLayers: [],
   selectedPages: [],
@@ -223,6 +225,9 @@ function canvasSnapshot(canvas: CanvasState) {
     canvasSize: canvas.size,
     layerFrames: Object.fromEntries(
       canvas.element_frames.map(({ element, frame }) => [element, frame]),
+    ),
+    layerFontSizes: Object.fromEntries(
+      canvas.text_sizes.map(({ element, font_size }) => [element, font_size]),
     ),
   }
 }

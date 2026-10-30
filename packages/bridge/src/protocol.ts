@@ -144,6 +144,7 @@ export type CanvasState = {
 	generation: number,
 	size: [number, number],
 	element_frames: TransformFrame[],
+	text_sizes: TextSize[],
 };
 
 export type ClaudeConfig = Record<string, never>;
@@ -514,6 +515,12 @@ export type TextContent = {
 
 export type TextLayoutKind = "point" | "paragraph";
 
+/**  The size a text layer was laid out at, including the result of auto-fit. */
+export type TextSize = {
+	element: EntityId,
+	font_size: number,
+};
+
 export type ThumbnailBytes = number[];
 
 export type TransformFrame = {
@@ -550,6 +557,7 @@ export type Typography = {
 	stroke_width: number | null,
 	alignment: TextAlignment | null,
 	writing_mode: WritingMode | null,
+	line_spacing: number | null,
 };
 
 export type TypographyUpdate = {
