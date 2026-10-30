@@ -82,6 +82,8 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             editing::merge_pages,
             editing::set_source_text,
             editing::set_translation,
+            editing::find_translations,
+            editing::replace_translations,
             editing::set_typography,
             editing::set_geometry,
             editing::set_visibility,
@@ -107,6 +109,7 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             canvas::add_point_text,
             canvas::add_text_box,
             canvas::add_ocr_box,
+            canvas::clean_ocr_box,
             canvas::commit_paint,
             canvas::commit_erase,
             canvas::commit_transform,
@@ -115,6 +118,8 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             session::stop_session,
             session::join_session,
             session::leave_session,
+            session::get_session_name,
+            session::set_session_name,
         ])
         .disable_serde_phases()
         .error_handling(ErrorHandlingMode::Throw)

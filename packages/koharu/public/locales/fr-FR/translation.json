@@ -82,6 +82,20 @@
     "fatalTitle": "Koharu ne peut pas continuer",
     "tryAgain": "Réessayer"
   },
+  "find": {
+    "matchCase": "Respecter la casse",
+    "noResults": "Aucune traduction ne contient ce texte.",
+    "page": "Page {{number}}",
+    "placeholder": "Rechercher dans les traductions",
+    "replace": "Remplacer",
+    "replaceAll": "Tout remplacer",
+    "replacePlaceholder": "Remplacer par",
+    "searching": "Recherche…",
+    "summary": "{{count}} résultats sur {{pages}} page(s)",
+    "summary_one": "{{count}} résultat sur {{pages}} page(s)",
+    "summary_other": "{{count}} résultats sur {{pages}} page(s)",
+    "title": "Rechercher"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} filtres actifs",
     "activeFilterCount_one": "{{count}} filtre actif",
@@ -179,6 +193,11 @@
     "border": "Contour",
     "borderColor": "Couleur du contour",
     "borderWidth": "Épaisseur du contour",
+    "secondBorder": "2ᵉ contour",
+    "secondBorderColor": "Couleur du second contour",
+    "secondBorderWidth": "Épaisseur du second contour",
+    "increaseSecondBorderWidth": "Augmenter l’épaisseur du second contour",
+    "decreaseSecondBorderWidth": "Réduire l’épaisseur du second contour",
     "chooseFontSize": "Choisir la taille de police",
     "color": "Couleur",
     "customFrame": "Cadre personnalisé",
@@ -215,7 +234,18 @@
     "unplaced": "Non placé",
     "vertical": "Vertical",
     "weight": "Graisse",
-    "width": "Largeur"
+    "width": "Largeur",
+    "outlineMethod": "Méthode du contour",
+    "outlineExpansion": "Expansion",
+    "outlineContour": "Tracé du contour",
+    "outlinePosition": "Position",
+    "outlineOutside": "Extérieur",
+    "outlineCenter": "Centre",
+    "outlineInside": "Intérieur",
+    "outlineJoin": "Angles",
+    "outlineRound": "Arrondis",
+    "outlineMiter": "Pointus",
+    "outlineBevel": "Biseautés"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "Copié",
     "copy": "Copier le lien",
     "copyFailed": "Impossible de copier le lien",
+    "guest": "Invité {{number}}",
+    "host": "Hôte",
     "hostOffline": "Hôte hors ligne — édition en pause",
     "hosting": "Partage de ce projet",
     "join": "Rejoindre une session",
@@ -383,8 +415,14 @@
     "leave": "Quitter",
     "linkCopied": "Lien copié",
     "linkOffline": "Partage arrêté",
+    "memberJoined": "{{name}} a rejoint la session",
+    "members": "Dans cette session",
+    "noPage": "Aucune page ouverte",
+    "onPage": "Page {{number}}",
+    "onThisPage": "Sur cette page : {{names}}",
     "share": "Partager la session",
-    "stopShare": "Arrêter le partage"
+    "stopShare": "Arrêter le partage",
+    "you": "Vous"
   },
   "settings": {
     "appearance": {
@@ -417,7 +455,11 @@
       "pages": "Pages",
       "showPageNumbers": "Afficher les numéros de page",
       "showPageNumbersDescription": "Affiche la position de chaque page sous son nom dans le rail des pages.",
-      "title": "Fonctionnalités NeKoharu"
+      "title": "Fonctionnalités NeKoharu",
+      "collaboration": "Collaboration",
+      "displayName": "Nom affiché",
+      "displayNameDescription": "Votre nom pour les autres dans une session partagée. Laissez vide pour obtenir un nom aléatoire.",
+      "randomName": "Choisir un nom aléatoire"
     },
     "backToEditor": "Retour à l’éditeur",
     "generation": {
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "Les raccourcis à une touche sont disponibles lorsqu’aucun champ de texte n’a le focus.",
       "inputLabel": "Raccourci : {{action}}",
+      "nextPage": "Page suivante",
+      "pages": "Pages",
+      "previousPage": "Page précédente",
       "title": "Raccourcis",
       "tools": "Outils"
     },

@@ -82,6 +82,20 @@
     "fatalTitle": "Koharu не может продолжить работу",
     "tryAgain": "Повторить"
   },
+  "find": {
+    "matchCase": "Учитывать регистр",
+    "noResults": "Ни один перевод не содержит этот текст.",
+    "page": "Страница {{number}}",
+    "placeholder": "Искать в переводах",
+    "replace": "Заменить",
+    "replaceAll": "Заменить все",
+    "replacePlaceholder": "Заменить на",
+    "searching": "Поиск…",
+    "summary": "Совпадений: {{count}}, страниц: {{pages}}",
+    "summary_one": "Совпадений: {{count}}, страниц: {{pages}}",
+    "summary_other": "Совпадений: {{count}}, страниц: {{pages}}",
+    "title": "Поиск"
+  },
   "fontPicker": {
     "activeFilterCount": "Активных фильтров: {{count}}",
     "activeFilterCount_one": "Активный фильтр: {{count}}",
@@ -179,6 +193,11 @@
     "border": "Обводка",
     "borderColor": "Цвет обводки",
     "borderWidth": "Ширина обводки",
+    "secondBorder": "2-я обводка",
+    "secondBorderColor": "Цвет второй обводки",
+    "secondBorderWidth": "Ширина второй обводки",
+    "increaseSecondBorderWidth": "Увеличить ширину второй обводки",
+    "decreaseSecondBorderWidth": "Уменьшить ширину второй обводки",
     "chooseFontSize": "Выбрать размер шрифта",
     "color": "Цвет",
     "customFrame": "Пользовательская рамка",
@@ -215,7 +234,18 @@
     "unplaced": "Не размещено",
     "vertical": "Вертикально",
     "weight": "Насыщенность",
-    "width": "Ширина"
+    "width": "Ширина",
+    "outlineMethod": "Способ обводки",
+    "outlineExpansion": "Расширение",
+    "outlineContour": "Контурная обводка",
+    "outlinePosition": "Положение",
+    "outlineOutside": "Снаружи",
+    "outlineCenter": "По центру",
+    "outlineInside": "Внутри",
+    "outlineJoin": "Углы",
+    "outlineRound": "Скруглённые",
+    "outlineMiter": "Острые",
+    "outlineBevel": "Скошенные"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "Скопировано",
     "copy": "Скопировать ссылку",
     "copyFailed": "Не удалось скопировать ссылку",
+    "guest": "Гость {{number}}",
+    "host": "Хост",
     "hostOffline": "Хост офлайн — редактирование паузено",
     "hosting": "Проект отправляется",
     "join": "Присоединиться к сессии",
@@ -383,8 +415,14 @@
     "leave": "Выйти",
     "linkCopied": "Ссылка скопирована",
     "linkOffline": "Отправка остановлена",
+    "memberJoined": "{{name}} присоединился к сессии",
+    "members": "В этой сессии",
+    "noPage": "Страница не открыта",
+    "onPage": "Страница {{number}}",
+    "onThisPage": "На этой странице: {{names}}",
     "share": "Поделиться сессией",
-    "stopShare": "Остановить отправку"
+    "stopShare": "Остановить отправку",
+    "you": "Вы"
   },
   "settings": {
     "appearance": {
@@ -418,7 +456,11 @@
       "mergeDeleteOriginals": "Удалять исходные страницы после объединения",
       "mergeDeleteOriginalsDescription": "Удаляет исходные страницы после объединения их в разворот. Когда выключено, исходные страницы остаются в проекте, и только их текстовые и очищающие слои переходят в разворот.",
       "showPageNumbers": "Показывать номера страниц",
-      "showPageNumbersDescription": "Показывает позицию каждой страницы под её именем в ленте страниц."
+      "showPageNumbersDescription": "Показывает позицию каждой страницы под её именем в ленте страниц.",
+      "collaboration": "Совместная работа",
+      "displayName": "Отображаемое имя",
+      "displayNameDescription": "Как вас видят другие в общей сессии. Оставьте пустым, чтобы получить случайное имя.",
+      "randomName": "Выбрать случайное имя"
     },
     "generation": {
       "description": "Настройте генерацию переведённого текста языковыми моделями.",
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "Одноклавишные сочетания доступны, когда поле ввода текста не в фокусе.",
       "inputLabel": "Сочетание для «{{action}}»",
+      "nextPage": "Следующая страница",
+      "pages": "Страницы",
+      "previousPage": "Предыдущая страница",
       "title": "Сочетания клавиш",
       "tools": "Инструменты"
     },

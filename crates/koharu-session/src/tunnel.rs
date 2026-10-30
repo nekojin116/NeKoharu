@@ -56,7 +56,7 @@ impl Tunnel {
             .spawn()
             .with_context(|| format!("failed to start {}", self.binary.display()))?;
 
-        let (mut lines, output) = collector(child.stdout.take(), child.stderr.take());
+        let mut lines = collector(child.stdout.take(), child.stderr.take());
         let url = await_url(&mut lines, &mut child).await;
         let Some(url) = url else {
             child.start_kill().ok();
@@ -67,7 +67,6 @@ impl Tunnel {
             {
                 tail.push(line);
             }
-            let _ = output;
             bail!(
                 "cloudflared did not publish a trycloudflare link{}",
                 if tail.is_empty() {
@@ -84,7 +83,6 @@ impl Tunnel {
         // notice when it stops on its own.
         let status = self.status.clone();
         tokio::spawn(async move {
-            let _ = output;
             while let Some(line) = lines.recv().await {
                 tracing::debug!(target: "cloudflared", "{line}");
             }
@@ -241,7 +239,7 @@ fn unpack_binary(archive: &[u8]) -> Result<Vec<u8>> {
 fn collector(
     stdout: Option<impl tokio::io::AsyncRead + Unpin + Send + 'static>,
     stderr: Option<impl tokio::io::AsyncRead + Unpin + Send + 'static>,
-) -> (mpsc::Receiver<String>, ()) {
+) -> mpsc::Receiver<String> {
     let (tx, rx) = mpsc::channel::<String>(128);
     if let Some(stdout) = stdout {
         tokio::spawn(pump(BufReader::new(stdout), tx.clone()));
@@ -249,7 +247,7 @@ fn collector(
     if let Some(stderr) = stderr {
         tokio::spawn(pump(BufReader::new(stderr), tx));
     }
-    (rx, ())
+    rx
 }
 
 async fn pump<R: tokio::io::AsyncRead + Unpin>(mut reader: BufReader<R>, tx: mpsc::Sender<String>) {

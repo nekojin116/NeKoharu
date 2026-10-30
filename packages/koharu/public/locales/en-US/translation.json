@@ -82,6 +82,20 @@
     "fatalTitle": "Koharu could not continue",
     "tryAgain": "Try again"
   },
+  "find": {
+    "matchCase": "Match case",
+    "noResults": "No translation contains this text.",
+    "page": "Page {{number}}",
+    "placeholder": "Find in translations",
+    "replace": "Replace",
+    "replaceAll": "Replace all",
+    "replacePlaceholder": "Replace with",
+    "searching": "Searching…",
+    "summary": "{{count}} matches on {{pages}} pages",
+    "summary_one": "{{count}} match on {{pages}} page(s)",
+    "summary_other": "{{count}} matches on {{pages}} page(s)",
+    "title": "Find"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} active filters",
     "activeFilterCount_one": "{{count}} active filter",
@@ -179,6 +193,11 @@
     "border": "Border",
     "borderColor": "Border color",
     "borderWidth": "Border width",
+    "secondBorder": "2nd border",
+    "secondBorderColor": "Second border color",
+    "secondBorderWidth": "Second border width",
+    "increaseSecondBorderWidth": "Increase second border width",
+    "decreaseSecondBorderWidth": "Decrease second border width",
     "chooseFontSize": "Choose font size",
     "color": "Color",
     "customFrame": "Custom frame",
@@ -215,7 +234,18 @@
     "unplaced": "Unplaced",
     "vertical": "Vertical",
     "weight": "Weight",
-    "width": "Width"
+    "width": "Width",
+    "outlineMethod": "Outline method",
+    "outlineExpansion": "Expansion",
+    "outlineContour": "Contour stroke",
+    "outlinePosition": "Position",
+    "outlineOutside": "Outside",
+    "outlineCenter": "Center",
+    "outlineInside": "Inside",
+    "outlineJoin": "Corners",
+    "outlineRound": "Round",
+    "outlineMiter": "Sharp",
+    "outlineBevel": "Bevel"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "Copied",
     "copy": "Copy link",
     "copyFailed": "Could not copy the link",
+    "guest": "Guest {{number}}",
+    "host": "Host",
     "hostOffline": "Host offline — editing is paused",
     "hosting": "Sharing this project",
     "join": "Join a session",
@@ -383,8 +415,14 @@
     "leave": "Leave",
     "linkCopied": "Link copied",
     "linkOffline": "Sharing stopped",
+    "memberJoined": "{{name}} joined the session",
+    "members": "In this session",
+    "noPage": "No page open",
+    "onPage": "Page {{number}}",
+    "onThisPage": "On this page: {{names}}",
     "share": "Share session",
-    "stopShare": "Stop sharing"
+    "stopShare": "Stop sharing",
+    "you": "You"
   },
   "settings": {
     "appearance": {
@@ -418,7 +456,11 @@
       "mergeDeleteOriginals": "Delete original pages after merging",
       "mergeDeleteOriginalsDescription": "Removes the source pages after they merge into a spread. When off, the originals stay in the project and only their text and cleanup layers move to the spread.",
       "showPageNumbers": "Show page numbers",
-      "showPageNumbersDescription": "Shows each page's position under its name in the page rail."
+      "showPageNumbersDescription": "Shows each page's position under its name in the page rail.",
+      "collaboration": "Collaboration",
+      "displayName": "Display name",
+      "displayNameDescription": "How you appear to others in a shared session. Leave it empty to get a random name.",
+      "randomName": "Pick a random name"
     },
     "generation": {
       "description": "Fine-tune how language models generate translated text.",
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "Single-key shortcuts are available whenever a text field is not focused.",
       "inputLabel": "{{action}} shortcut",
+      "nextPage": "Next page",
+      "pages": "Pages",
+      "previousPage": "Previous page",
       "title": "Shortcuts",
       "tools": "Tools"
     },

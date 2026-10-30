@@ -17,8 +17,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } fro
 import { useTranslation } from 'react-i18next'
 
 import { ResourceMonitor } from '@/components/editor/ResourceMonitor'
+import { MemberAvatar, memberName } from '@/components/editor/SessionBar'
 import { call } from '@/lib/backend'
 import { useForkPreferences } from '@/lib/forkPreferences'
+import { activatePage, cancelPageActivation } from '@/lib/navigation'
 import {
   pageKey,
   pagesKey,
@@ -31,14 +33,14 @@ import {
   usePages,
 } from '@/lib/queries'
 import { useKoharuStore } from '@/lib/store'
-import { prefetchCanvasPages, showCanvasPage } from '@koharu/bridge/canvas'
+import { prefetchCanvasPages } from '@koharu/bridge/canvas'
 import {
   commands,
   type CanvasPagePreparation,
-  type Page,
   type PageImportSource,
   type PageSummary,
   type ProjectInfo,
+  type SessionMember,
 } from '@koharu/bridge/protocol'
 import { Button } from '@koharu/ui/components/button'
 import {
@@ -62,6 +64,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@koharu/ui/components/t
 import { cn } from '@koharu/ui/lib/utils'
 
 const emptyPages: PageSummary[] = []
+/** Avatars a rail entry shows before folding the rest into a count. */
+const MAX_PAGE_MEMBERS = 3
 
 interface IntentPrefetchState {
   project: string
@@ -76,13 +80,23 @@ export function PageRail() {
   const pages = usePages().data ?? emptyPages
   const active = usePage().data?.id ?? null
   const selected = useKoharuStore((state) => state.selectedPages)
+  const members = useKoharuStore((state) => state.session.members)
+  // Where everyone else in the session is; this instance's own page is the
+  // active one already.
+  const membersByPage = useMemo(() => {
+    const byPage = new Map<string, SessionMember[]>()
+    for (const member of members) {
+      if (member.you || !member.page) continue
+      byPage.set(member.page, [...(byPage.get(member.page) ?? []), member])
+    }
+    return byPage
+  }, [members])
   const selectPages = useKoharuStore((state) => state.selectPages)
   const selectLayers = useKoharuStore((state) => state.selectLayers)
   const setSettingsOpen = useKoharuStore((state) => state.setSettingsOpen)
   const mergeDeleteOriginals = useForkPreferences((state) => state.preferences.mergeDeleteOriginals)
   const { importPages, importing } = useImportPages()
   const anchor = useRef<number | null>(null)
-  const selectionRequest = useRef(0)
   const intentPrefetch = useRef<IntentPrefetchState | null>(null)
   const keyboardPageIndex = useRef<number | null>(null)
   const draggedPage = useRef<string | null>(null)
@@ -118,23 +132,21 @@ export function PageRail() {
       ),
   })
 
-  // A project reopens at the page it was left on; bring that page into view
-  // once, rather than leaving the rail at the top.
-  const revealedActive = useRef(false)
+  // A project reopens at the page it was left on, so that page is centered
+  // once; later switches, such as a search result, scroll the rail only when
+  // the page is off screen.
+  const revealedActive = useRef<string | null>(null)
   useEffect(() => {
-    if (revealedActive.current || !active) return
+    if (!active || revealedActive.current === active) return
     const index = visiblePages.findIndex(({ page }) => page.id === active)
     if (index < 0) return
-    revealedActive.current = true
-    pageVirtualizer.scrollToIndex(index, { align: 'center' })
+    pageVirtualizer.scrollToIndex(index, {
+      align: revealedActive.current === null ? 'center' : 'auto',
+    })
+    revealedActive.current = active
   }, [active, pageVirtualizer, visiblePages])
 
-  useEffect(
-    () => () => {
-      selectionRequest.current += 1
-    },
-    [],
-  )
+  useEffect(() => cancelPageActivation, [])
 
   const select = useCallback(
     (index: number, additive: boolean, range: boolean) => {
@@ -155,40 +167,9 @@ export function PageRail() {
         next = [page.id]
         anchor.current = index
       }
-      const previousProject = queryClient.getQueryData<ProjectInfo | null>(projectKey)
-      const previousPage = queryClient.getQueryData<Page | null>(pageKey)
-      const prepared = queryClient.getQueryData<CanvasPagePreparation>(preparedPageKey(page.id))
-      const activated = showCanvasPage(page.id, previousProject?.revision ?? null)
-      const request = ++selectionRequest.current
-      const synchronize = () => {
-        if (selectionRequest.current !== request) return
-        if (activated && previousProject && prepared?.revision === previousProject.revision) {
-          queryClient.setQueryData(projectKey, { ...previousProject, active_page: page.id })
-          queryClient.setQueryData(pageKey, prepared.page)
-        }
-        selectPages(next)
-        selectLayers([])
-        void call(commands.selectPage, page.id)
-          .then((selection) => {
-            if (selectionRequest.current !== request) return
-            queryClient.setQueryData(projectKey, selection.project)
-            queryClient.setQueryData(pageKey, selection.page)
-          })
-          .catch(() => {
-            if (selectionRequest.current !== request) return
-            if (queryClient.getQueryData<ProjectInfo | null>(projectKey)?.active_page === page.id) {
-              queryClient.setQueryData(projectKey, previousProject)
-              queryClient.setQueryData(pageKey, previousPage)
-            }
-          })
-      }
-      if (activated) {
-        requestAnimationFrame(() => window.setTimeout(synchronize, 0))
-      } else {
-        synchronize()
-      }
+      void activatePage(page.id, next)
     },
-    [pages, selected, selectLayers, selectPages],
+    [pages, selected],
   )
 
   useEffect(() => {
@@ -197,8 +178,16 @@ export function PageRail() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const { shortcuts } = useKoharuStore.getState()
+      const key = event.key.toLowerCase()
+      const step =
+        event.key === 'ArrowLeft' || event.key === 'PageUp' || key === shortcuts.previous_page
+          ? -1
+          : event.key === 'ArrowRight' || event.key === 'PageDown' || key === shortcuts.next_page
+            ? 1
+            : 0
       if (
-        (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') ||
+        step === 0 ||
         event.defaultPrevented ||
         event.altKey ||
         event.ctrlKey ||
@@ -218,7 +207,7 @@ export function PageRail() {
         return
 
       const current = keyboardPageIndex.current ?? pages.findIndex((page) => page.id === active)
-      const next = current + (event.key === 'ArrowLeft' ? -1 : 1)
+      const next = current + step
       if (current < 0 || !pages[next]) return
 
       event.preventDefault()
@@ -446,6 +435,7 @@ export function PageRail() {
                       index={index}
                       active={active === page.id}
                       selected={selected.includes(page.id)}
+                      members={membersByPage.get(page.id)}
                       dragged={dragged === page.id}
                       isDragging={dragged !== null}
                       dropPosition={dropTarget?.page === page.id ? dropTarget.position : null}
@@ -618,6 +608,7 @@ function PageItem({
   index,
   active,
   selected,
+  members,
   dragged,
   dropPosition,
   isDragging,
@@ -637,6 +628,7 @@ function PageItem({
   index: number
   active: boolean
   selected: boolean
+  members?: SessionMember[]
   dragged: boolean
   dropPosition: DropPosition | null
   isDragging?: boolean
@@ -702,7 +694,7 @@ function PageItem({
     >
       <div
         className={cn(
-          'grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
+          'relative grid h-16 w-12 place-items-center overflow-hidden rounded-lg bg-[var(--surface-well)]',
           isDragging && 'pointer-events-none',
         )}
       >
@@ -711,6 +703,7 @@ function PageItem({
         ) : (
           <span className='text-[9px] text-muted-foreground'>{t('navigator.noImage')}</span>
         )}
+        {members && members.length > 0 && <PageMembers members={members} />}
       </div>
       <div className={cn('min-w-0 py-0.5', isDragging && 'pointer-events-none')}>
         <div className='flex items-start gap-1'>
@@ -780,6 +773,36 @@ function PageItem({
         </p>
       </div>
     </article>
+  )
+}
+
+/** The other session participants who have this page open. */
+function PageMembers({ members }: { members: SessionMember[] }) {
+  const { t } = useTranslation()
+  const label = t('session.onThisPage', {
+    names: members.map((member) => memberName(t, member)).join(', '),
+  })
+  const hidden = members.length - MAX_PAGE_MEMBERS
+  return (
+    <span
+      role='img'
+      aria-label={label}
+      title={label}
+      className='absolute right-0.5 bottom-0.5 flex -space-x-1'
+    >
+      {members.slice(0, MAX_PAGE_MEMBERS).map((member) => (
+        <MemberAvatar
+          key={member.peer}
+          member={member}
+          className='ring-1 ring-[var(--surface-well)]'
+        />
+      ))}
+      {hidden > 0 && (
+        <span className='grid size-4 place-items-center rounded-full bg-foreground text-[8px] leading-none font-semibold text-background ring-1 ring-[var(--surface-well)]'>
+          +{hidden}
+        </span>
+      )}
+    </span>
   )
 }
 

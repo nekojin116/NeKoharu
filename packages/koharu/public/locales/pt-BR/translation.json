@@ -82,6 +82,20 @@
     "fatalTitle": "O Koharu não pôde continuar",
     "tryAgain": "Tentar novamente"
   },
+  "find": {
+    "matchCase": "Diferenciar maiúsculas e minúsculas",
+    "noResults": "Nenhuma tradução contém este texto.",
+    "page": "Página {{number}}",
+    "placeholder": "Localizar nas traduções",
+    "replace": "Substituir",
+    "replaceAll": "Substituir tudo",
+    "replacePlaceholder": "Substituir por",
+    "searching": "Localizando…",
+    "summary": "{{count}} ocorrências em {{pages}} página(s)",
+    "summary_one": "{{count}} ocorrência em {{pages}} página(s)",
+    "summary_other": "{{count}} ocorrências em {{pages}} página(s)",
+    "title": "Localizar"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} filtros ativos",
     "activeFilterCount_one": "{{count}} filtro ativo",
@@ -179,6 +193,11 @@
     "border": "Contorno",
     "borderColor": "Cor do contorno",
     "borderWidth": "Largura do contorno",
+    "secondBorder": "2º contorno",
+    "secondBorderColor": "Cor do segundo contorno",
+    "secondBorderWidth": "Largura do segundo contorno",
+    "increaseSecondBorderWidth": "Aumentar largura do segundo contorno",
+    "decreaseSecondBorderWidth": "Diminuir largura do segundo contorno",
     "chooseFontSize": "Escolher tamanho da fonte",
     "color": "Cor",
     "customFrame": "Quadro personalizado",
@@ -215,7 +234,18 @@
     "unplaced": "Não posicionado",
     "vertical": "Vertical",
     "weight": "Peso",
-    "width": "Largura"
+    "width": "Largura",
+    "outlineMethod": "Método do contorno",
+    "outlineExpansion": "Expansão",
+    "outlineContour": "Traçado do contorno",
+    "outlinePosition": "Posição",
+    "outlineOutside": "Externo",
+    "outlineCenter": "Centro",
+    "outlineInside": "Interno",
+    "outlineJoin": "Cantos",
+    "outlineRound": "Redondos",
+    "outlineMiter": "Pontiagudos",
+    "outlineBevel": "Chanfrados"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "Copiado",
     "copy": "Copiar link",
     "copyFailed": "Não foi possível copiar o link",
+    "guest": "Convidado {{number}}",
+    "host": "Anfitrião",
     "hostOffline": "Anfitrião offline — edição pausada",
     "hosting": "Compartilhando este projeto",
     "join": "Entrar em uma sessão",
@@ -383,8 +415,14 @@
     "leave": "Sair",
     "linkCopied": "Link copiado",
     "linkOffline": "Compartilhamento encerrado",
+    "memberJoined": "{{name}} entrou na sessão",
+    "members": "Nesta sessão",
+    "noPage": "Nenhuma página aberta",
+    "onPage": "Página {{number}}",
+    "onThisPage": "Nesta página: {{names}}",
     "share": "Compartilhar sessão",
-    "stopShare": "Parar compartilhamento"
+    "stopShare": "Parar compartilhamento",
+    "you": "Você"
   },
   "settings": {
     "appearance": {
@@ -418,7 +456,11 @@
       "mergeDeleteOriginals": "Excluir páginas originais após a fusão",
       "mergeDeleteOriginalsDescription": "Remove as páginas de origem quando são fundidas em uma dupla. Quando desativado, as originais permanecem no projeto e apenas suas camadas de texto e limpeza são movidas para a dupla.",
       "showPageNumbers": "Mostrar números de página",
-      "showPageNumbersDescription": "Mostra a posição de cada página abaixo de seu nome na tira de páginas."
+      "showPageNumbersDescription": "Mostra a posição de cada página abaixo de seu nome na tira de páginas.",
+      "collaboration": "Colaboração",
+      "displayName": "Nome de exibição",
+      "displayNameDescription": "Como você aparece para os outros em uma sessão compartilhada. Deixe vazio para receber um nome aleatório.",
+      "randomName": "Escolher um nome aleatório"
     },
     "generation": {
       "description": "Ajuste como os modelos de linguagem geram o texto traduzido.",
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "Atalhos de uma tecla ficam disponíveis quando nenhum campo de texto está em foco.",
       "inputLabel": "Atalho de {{action}}",
+      "nextPage": "Próxima página",
+      "pages": "Páginas",
+      "previousPage": "Página anterior",
       "title": "Atalhos",
       "tools": "Ferramentas"
     },

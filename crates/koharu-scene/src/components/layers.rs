@@ -113,7 +113,33 @@ pub enum FontStyle {
     Oblique,
 }
 
-#[revisioned(revision = 2)]
+#[revisioned(revision = 1)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StrokeMethod {
+    Expansion,
+    Contour,
+}
+
+#[revisioned(revision = 1)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StrokePosition {
+    Outside,
+    Center,
+    Inside,
+}
+
+#[revisioned(revision = 1)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StrokeJoin {
+    Round,
+    Miter,
+    Bevel,
+}
+
+#[revisioned(revision = 4)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
 pub struct Typography {
     pub origin: Origin,
@@ -128,8 +154,20 @@ pub struct Typography {
     pub alignment: Option<TextAlignment>,
     pub writing_mode: Option<WritingMode>,
     pub extensions: BTreeMap<String, String>,
-    /// Baseline-to-baseline distance as a multiple of the font size; `None` uses the renderer default.
     #[revision(start = 2)]
+    pub stroke_method: Option<StrokeMethod>,
+    #[revision(start = 2)]
+    pub stroke_position: Option<StrokePosition>,
+    #[revision(start = 2)]
+    pub stroke_join: Option<StrokeJoin>,
+    /// Color of a second outline outside the first (#698).
+    #[revision(start = 3)]
+    pub outer_stroke_color: Option<[u8; 4]>,
+    /// Width of the second outline; absent or zero means none.
+    #[revision(start = 3)]
+    pub outer_stroke_width: Option<f32>,
+    /// Baseline-to-baseline distance as a multiple of the font size; `None` uses the renderer default.
+    #[revision(start = 4)]
     pub line_spacing: Option<f32>,
 }
 
@@ -150,6 +188,9 @@ impl Component for Typography {
             || (!self.auto_fit && self.size.is_none())
             || self
                 .stroke_width
+                .is_some_and(|width| !width.is_finite() || width < 0.0)
+            || self
+                .outer_stroke_width
                 .is_some_and(|width| !width.is_finite() || width < 0.0)
             || self
                 .line_spacing

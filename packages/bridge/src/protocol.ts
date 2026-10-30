@@ -30,6 +30,13 @@ export const commands = {
 	mergePages: (pages: EntityId[], deleteOriginals: boolean) => __TAURI_INVOKE<EntityId>("merge_pages", { pages, deleteOriginals }),
 	setSourceText: (layer: EntityId, text: string) => __TAURI_INVOKE<null>("set_source_text", { layer, text }),
 	setTranslation: (layer: EntityId, text: string | null) => __TAURI_INVOKE<null>("set_translation", { layer, text }),
+	/**  The text layers whose translation contains `query`, in project order. */
+	findTranslations: (query: string, matchCase: boolean) => __TAURI_INVOKE<TranslationMatch[]>("find_translations", { query, matchCase }),
+	/**
+	 *  Replaces `query` in translations as one undo step, everywhere or only in
+	 *  `layers`, and returns how many occurrences were replaced.
+	 */
+	replaceTranslations: (query: string, replacement: string, matchCase: boolean, layers: EntityId[] | null) => __TAURI_INVOKE<number>("replace_translations", { query, replacement, matchCase, layers }),
 	setTypography: (updates: TypographyUpdate[]) => __TAURI_INVOKE<null>("set_typography", { updates }),
 	setGeometry: (updates: GeometryUpdate[]) => __TAURI_INVOKE<null>("set_geometry", { updates }),
 	setVisibility: (layers: EntityId[], visible: boolean | null, opacity: number | null) => __TAURI_INVOKE<null>("set_visibility", { layers, visible, opacity }),
@@ -54,7 +61,14 @@ export const commands = {
 	getCanvasPageResource: (page: EntityId, revision: Revision, resource: string) => __TAURI_INVOKE<CanvasBytes>("get_canvas_page_resource", { page, revision, resource }),
 	addPointText: (point: Point) => __TAURI_INVOKE<LayerCommit>("add_point_text", { point }),
 	addTextBox: (frame: Frame) => __TAURI_INVOKE<LayerCommit>("add_text_box", { frame }),
-	addOcrBox: (frame: Frame, cleanup: boolean) => __TAURI_INVOKE<LayerCommit>("add_ocr_box", { frame, cleanup }),
+	addOcrBox: (frame: Frame) => __TAURI_INVOKE<LayerCommit>("add_ocr_box", { frame }),
+	/**
+	 *  Reads and cleans the text inside a box the user drew. Detection runs on the
+	 *  box first, so each piece of lettering in it gets its own text layer and
+	 *  only the lettering is cleaned; a box it finds nothing in is read and
+	 *  cleaned whole.
+	 */
+	cleanOcrBox: (frame: Frame) => __TAURI_INVOKE<JobId>("clean_ocr_box", { frame }),
 	commitPaint: (expectedRevision: Revision, layer: EntityId | null, points: Point[], brush: PaintBrush) => __TAURI_INVOKE<LayerCommit>("commit_paint", { expectedRevision, layer, points, brush }),
 	commitErase: (expectedRevision: Revision, layer: EntityId, points: Point[], diameter: number) => __TAURI_INVOKE<LayerCommit>("commit_erase", { expectedRevision, layer, points, diameter }),
 	commitTransform: (expectedRevision: Revision, elements: TransformFrame[]) => __TAURI_INVOKE<Revision | null>("commit_transform", { expectedRevision, elements }),
@@ -78,6 +92,13 @@ export const commands = {
 	joinSession: (link: string) => __TAURI_INVOKE<SessionInfo>("join_session", { link }),
 	/**  Leaves the joined session and closes the replica. */
 	leaveSession: () => __TAURI_INVOKE<null>("leave_session"),
+	/**  The name this instance goes by in sessions. */
+	getSessionName: () => __TAURI_INVOKE<string>("get_session_name"),
+	/**
+	 *  Renames this instance and tells a running session at once. A blank name
+	 *  is replaced by a generated one; the name in effect is returned.
+	 */
+	setSessionName: (name: string) => __TAURI_INVOKE<string>("set_session_name", { name }),
 };
 
 /* Types */
@@ -485,6 +506,21 @@ export type SessionInfo = {
 	link: string | null,
 	/**  False once the other side has gone away. */
 	online: boolean,
+	/**  Everyone in the session, the host first. Empty while offline. */
+	members: SessionMember[],
+};
+
+/**  One participant of the running session. */
+export type SessionMember = {
+	/**  Stable for as long as the participant stays connected. */
+	peer: number,
+	/**  The participant's own name for themselves; empty when unknown. */
+	name: string,
+	/**  The id of the page they have open. */
+	page: string | null,
+	host: boolean,
+	/**  True for this instance's own entry. */
+	you: boolean,
 };
 
 /**  What this instance is doing with other machines, sent to the frontend. */
@@ -502,6 +538,12 @@ export type StartupState = {
 	jobs: Job[],
 	canvas: CanvasState,
 };
+
+export type StrokeJoin = "round" | "miter" | "bevel";
+
+export type StrokeMethod = "expansion" | "contour";
+
+export type StrokePosition = "outside" | "center" | "inside";
 
 export type TextAlignment = "Start" | "Center" | "End" | "Justify";
 
@@ -542,6 +584,18 @@ export type TranslationConfig = {
 	max_pages_per_request?: number,
 };
 
+/**  A text layer whose translation contains the searched text. */
+export type TranslationMatch = {
+	page: EntityId,
+	/**  The page's position in the project, from zero. */
+	page_index: number,
+	layer: EntityId,
+	/**  The layer's whole translation. */
+	text: string,
+	/**  How many times the searched text occurs in it. */
+	count: number,
+};
+
 export type TypesettingConfig = {
 	font_families?: string[],
 };
@@ -555,6 +609,11 @@ export type Typography = {
 	color: [number, number, number, number] | null,
 	stroke_color: [number, number, number, number] | null,
 	stroke_width: number | null,
+	stroke_method: StrokeMethod | null,
+	stroke_position: StrokePosition | null,
+	stroke_join: StrokeJoin | null,
+	outer_stroke_color: [number, number, number, number] | null,
+	outer_stroke_width: number | null,
 	alignment: TextAlignment | null,
 	writing_mode: WritingMode | null,
 	line_spacing: number | null,

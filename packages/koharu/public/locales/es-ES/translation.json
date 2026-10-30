@@ -82,6 +82,20 @@
     "fatalTitle": "Koharu no pudo continuar",
     "tryAgain": "Intentar de nuevo"
   },
+  "find": {
+    "matchCase": "Coincidir mayúsculas y minúsculas",
+    "noResults": "Ninguna traducción contiene este texto.",
+    "page": "Página {{number}}",
+    "placeholder": "Buscar en las traducciones",
+    "replace": "Reemplazar",
+    "replaceAll": "Reemplazar todo",
+    "replacePlaceholder": "Reemplazar por",
+    "searching": "Buscando…",
+    "summary": "{{count}} coincidencias en {{pages}} página(s)",
+    "summary_one": "{{count}} coincidencia en {{pages}} página(s)",
+    "summary_other": "{{count}} coincidencias en {{pages}} página(s)",
+    "title": "Buscar"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} filtros activos",
     "activeFilterCount_one": "{{count}} filtro activo",
@@ -179,6 +193,11 @@
     "border": "Contorno",
     "borderColor": "Color del contorno",
     "borderWidth": "Ancho del contorno",
+    "secondBorder": "2.º contorno",
+    "secondBorderColor": "Color del segundo contorno",
+    "secondBorderWidth": "Ancho del segundo contorno",
+    "increaseSecondBorderWidth": "Aumentar ancho del segundo contorno",
+    "decreaseSecondBorderWidth": "Reducir ancho del segundo contorno",
     "chooseFontSize": "Elegir tamaño de fuente",
     "color": "Color",
     "customFrame": "Marco personalizado",
@@ -215,7 +234,18 @@
     "unplaced": "Sin colocar",
     "vertical": "Vertical",
     "weight": "Peso",
-    "width": "Anchura"
+    "width": "Anchura",
+    "outlineMethod": "Método del borde",
+    "outlineExpansion": "Expansión",
+    "outlineContour": "Trazo de contorno",
+    "outlinePosition": "Posición",
+    "outlineOutside": "Exterior",
+    "outlineCenter": "Centro",
+    "outlineInside": "Interior",
+    "outlineJoin": "Esquinas",
+    "outlineRound": "Redondas",
+    "outlineMiter": "Puntiagudas",
+    "outlineBevel": "Biseladas"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "Copiado",
     "copy": "Copiar enlace",
     "copyFailed": "No se pudo copiar el enlace",
+    "guest": "Invitado {{number}}",
+    "host": "Anfitrión",
     "hostOffline": "Anfitrión sin conexión: edición en pausa",
     "hosting": "Compartiendo este proyecto",
     "join": "Unirse a una sesión",
@@ -383,8 +415,14 @@
     "leave": "Salir",
     "linkCopied": "Enlace copiado",
     "linkOffline": "Compartido detenido",
+    "memberJoined": "{{name}} se unió a la sesión",
+    "members": "En esta sesión",
+    "noPage": "Ninguna página abierta",
+    "onPage": "Página {{number}}",
+    "onThisPage": "En esta página: {{names}}",
     "share": "Compartir sesión",
-    "stopShare": "Dejar de compartir"
+    "stopShare": "Dejar de compartir",
+    "you": "Tú"
   },
   "settings": {
     "appearance": {
@@ -418,7 +456,11 @@
       "mergeDeleteOriginals": "Eliminar páginas originales al fusionar",
       "mergeDeleteOriginalsDescription": "Elimina las páginas de origen cuando se fusionan en un pliego. Cuando está desactivado, las originales permanecen en el proyecto y solo sus capas de texto y limpieza se mueven al pliego.",
       "showPageNumbers": "Mostrar números de página",
-      "showPageNumbersDescription": "Muestra la posición de cada página debajo de su nombre en la tira de páginas."
+      "showPageNumbersDescription": "Muestra la posición de cada página debajo de su nombre en la tira de páginas.",
+      "collaboration": "Colaboración",
+      "displayName": "Nombre visible",
+      "displayNameDescription": "Cómo te ven los demás en una sesión compartida. Déjalo vacío para obtener un nombre aleatorio.",
+      "randomName": "Elegir un nombre aleatorio"
     },
     "generation": {
       "description": "Ajusta cómo los modelos de lenguaje generan el texto traducido.",
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "Los atajos de una tecla están disponibles cuando ningún campo de texto tiene el foco.",
       "inputLabel": "Atajo de {{action}}",
+      "nextPage": "Página siguiente",
+      "pages": "Páginas",
+      "previousPage": "Página anterior",
       "title": "Atajos",
       "tools": "Herramientas"
     },

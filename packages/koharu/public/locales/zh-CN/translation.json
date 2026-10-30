@@ -82,6 +82,20 @@
     "fatalTitle": "Koharu 无法继续运行",
     "tryAgain": "重试"
   },
+  "find": {
+    "matchCase": "区分大小写",
+    "noResults": "没有译文包含此文本。",
+    "page": "第 {{number}} 页",
+    "placeholder": "在译文中查找",
+    "replace": "替换",
+    "replaceAll": "全部替换",
+    "replacePlaceholder": "替换为",
+    "searching": "正在查找…",
+    "summary": "{{pages}} 页中共 {{count}} 处",
+    "summary_one": "{{pages}} 页中共 {{count}} 处",
+    "summary_other": "{{pages}} 页中共 {{count}} 处",
+    "title": "查找"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} 个启用的筛选条件",
     "activeFilterCount_one": "{{count}} 个启用的筛选条件",
@@ -179,6 +193,11 @@
     "border": "描边",
     "borderColor": "描边颜色",
     "borderWidth": "描边宽度",
+    "secondBorder": "第二描边",
+    "secondBorderColor": "第二描边颜色",
+    "secondBorderWidth": "第二描边宽度",
+    "increaseSecondBorderWidth": "增大第二描边宽度",
+    "decreaseSecondBorderWidth": "减小第二描边宽度",
     "chooseFontSize": "选择字体大小",
     "color": "颜色",
     "customFrame": "自定义框架",
@@ -215,7 +234,18 @@
     "unplaced": "未放置",
     "vertical": "竖排",
     "weight": "字重",
-    "width": "宽度"
+    "width": "宽度",
+    "outlineMethod": "描边方式",
+    "outlineExpansion": "扩张",
+    "outlineContour": "轮廓描边",
+    "outlinePosition": "位置",
+    "outlineOutside": "外侧",
+    "outlineCenter": "居中",
+    "outlineInside": "内侧",
+    "outlineJoin": "转角",
+    "outlineRound": "圆角",
+    "outlineMiter": "尖角",
+    "outlineBevel": "斜角"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "已复制",
     "copy": "复制链接",
     "copyFailed": "无法复制链接",
+    "guest": "访客 {{number}}",
+    "host": "主持人",
     "hostOffline": "主机已离线 — 编辑已暂停",
     "hosting": "正在共享此项目",
     "join": "加入会话",
@@ -383,8 +415,14 @@
     "leave": "离开",
     "linkCopied": "链接已复制",
     "linkOffline": "已停止共享",
+    "memberJoined": "{{name}} 加入了会话",
+    "members": "会话成员",
+    "noPage": "未打开页面",
+    "onPage": "第 {{number}} 页",
+    "onThisPage": "在此页面：{{names}}",
     "share": "共享会话",
-    "stopShare": "停止共享"
+    "stopShare": "停止共享",
+    "you": "你"
   },
   "settings": {
     "appearance": {
@@ -418,7 +456,11 @@
       "mergeDeleteOriginals": "合并后删除原始页面",
       "mergeDeleteOriginalsDescription": "页面合并为跨页后删除原始页面。关闭时，原始页面会保留，只有文字和清理图层会移动到跨页。",
       "showPageNumbers": "显示页码",
-      "showPageNumbersDescription": "在页面栏中每个页面名称下方显示其位置编号。"
+      "showPageNumbersDescription": "在页面栏中每个页面名称下方显示其位置编号。",
+      "collaboration": "协作",
+      "displayName": "显示名称",
+      "displayNameDescription": "在共享会话中其他人看到的名称。留空将获得一个随机名称。",
+      "randomName": "随机选择名称"
     },
     "generation": {
       "description": "微调语言模型生成译文的方式。",
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "当文本字段未获得焦点时，可以使用单键快捷键。",
       "inputLabel": "{{action}} 快捷键",
+      "nextPage": "下一页",
+      "pages": "页面",
+      "previousPage": "上一页",
       "title": "快捷键",
       "tools": "工具"
     },

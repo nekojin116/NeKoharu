@@ -129,8 +129,8 @@ async fn built_in_component_schema_revisions_are_explicit() {
         [1; 16]
     );
     assert_eq!(schema::<Page>(), 2);
+    assert_eq!(schema::<Typography>(), 4);
     assert_eq!(schema::<TextLayout>(), 2);
-    assert_eq!(schema::<Typography>(), 2);
 }
 
 #[tokio::test]
@@ -1160,6 +1160,11 @@ async fn independent_pipeline_components_rebase() {
                     color: Some([1, 2, 3, 255]),
                     stroke_color: None,
                     stroke_width: None,
+                    stroke_method: None,
+                    stroke_position: None,
+                    stroke_join: None,
+                    outer_stroke_color: None,
+                    outer_stroke_width: None,
                     alignment: Some(TextAlignment::Center),
                     writing_mode: None,
                     extensions: BTreeMap::new(),
@@ -1731,4 +1736,58 @@ async fn encoded_snapshot_opens_a_replica_that_commits_at_the_hosts_revision() {
             .await
             .is_err()
     );
+}
+
+/// Projects saved before the double outline (Typography revision 2) must still open, with no
+/// second outline.
+#[test]
+fn typography_revision_two_loads_without_a_second_outline() {
+    use revision::{DeserializeRevisioned, SerializeRevisioned};
+
+    #[revisioned(revision = 2)]
+    struct TypographyV2 {
+        origin: Origin,
+        preferred_font: Option<String>,
+        font_weight: Option<u16>,
+        font_style: Option<FontStyle>,
+        size: Option<f32>,
+        auto_fit: bool,
+        color: Option<[u8; 4]>,
+        stroke_color: Option<[u8; 4]>,
+        stroke_width: Option<f32>,
+        alignment: Option<TextAlignment>,
+        writing_mode: Option<crate::WritingMode>,
+        extensions: BTreeMap<String, String>,
+        #[revision(start = 2)]
+        stroke_method: Option<crate::StrokeMethod>,
+        #[revision(start = 2)]
+        stroke_position: Option<crate::StrokePosition>,
+        #[revision(start = 2)]
+        stroke_join: Option<crate::StrokeJoin>,
+    }
+
+    let old = TypographyV2 {
+        origin: Origin::User,
+        preferred_font: Some("CCWildWords".to_owned()),
+        font_weight: Some(400),
+        font_style: None,
+        size: Some(300.0),
+        auto_fit: false,
+        color: Some([0, 0, 0, 255]),
+        stroke_color: Some([255, 255, 255, 255]),
+        stroke_width: Some(24.5),
+        alignment: None,
+        writing_mode: None,
+        extensions: BTreeMap::new(),
+        stroke_method: Some(crate::StrokeMethod::Contour),
+        stroke_position: Some(crate::StrokePosition::Outside),
+        stroke_join: Some(crate::StrokeJoin::Round),
+    };
+    let mut bytes = Vec::new();
+    old.serialize_revisioned(&mut bytes).unwrap();
+    let loaded = Typography::deserialize_revisioned(&mut bytes.as_slice()).unwrap();
+    assert_eq!(loaded.stroke_width, Some(24.5));
+    assert_eq!(loaded.stroke_method, Some(crate::StrokeMethod::Contour));
+    assert_eq!(loaded.outer_stroke_color, None);
+    assert_eq!(loaded.outer_stroke_width, None);
 }

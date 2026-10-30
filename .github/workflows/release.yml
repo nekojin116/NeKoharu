@@ -38,6 +38,18 @@ jobs:
             exit 1
           fi
 
+      # Fork versions carry a -N suffix, which MSI rejects, so the Windows
+      # config pins the numeric base for the installer.
+      - name: Check MSI version matches workspace version
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          msi=$(jq -r '.bundle.windows.wix.version' crates/koharu/tauri.windows.conf.json)
+          if [[ "${msi}" != "${version%%-*}" ]]; then
+            echo "::error::MSI version ${msi} in tauri.windows.conf.json does not match ${version%%-*}"
+            exit 1
+          fi
+
   release:
     needs: verify
     strategy:

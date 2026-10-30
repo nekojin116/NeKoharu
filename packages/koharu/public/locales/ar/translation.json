@@ -82,6 +82,20 @@
     "fatalTitle": "تعذّر على Koharu المتابعة",
     "tryAgain": "أعد المحاولة"
   },
+  "find": {
+    "matchCase": "مطابقة حالة الأحرف",
+    "noResults": "لا توجد ترجمة تحتوي على هذا النص.",
+    "page": "الصفحة {{number}}",
+    "placeholder": "البحث في الترجمات",
+    "replace": "استبدال",
+    "replaceAll": "استبدال الكل",
+    "replacePlaceholder": "الاستبدال بـ",
+    "searching": "جارٍ البحث…",
+    "summary": "النتائج: {{count}} في {{pages}} صفحة",
+    "summary_one": "النتائج: {{count}} في {{pages}} صفحة",
+    "summary_other": "النتائج: {{count}} في {{pages}} صفحة",
+    "title": "بحث"
+  },
   "fontPicker": {
     "activeFilterCount": "{{count}} مرشّحات نشطة",
     "activeFilterCount_one": "{{count}} مرشّح نشط",
@@ -179,6 +193,11 @@
     "border": "الحدود",
     "borderColor": "لون الحدود",
     "borderWidth": "عرض الحدود",
+    "secondBorder": "الحدود 2",
+    "secondBorderColor": "لون الحدود الثانية",
+    "secondBorderWidth": "عرض الحدود الثانية",
+    "increaseSecondBorderWidth": "زيادة عرض الحدود الثانية",
+    "decreaseSecondBorderWidth": "تقليل عرض الحدود الثانية",
     "chooseFontSize": "اختر حجم الخط",
     "color": "اللون",
     "customFrame": "إطار مخصّص",
@@ -215,7 +234,18 @@
     "unplaced": "غير موضوع",
     "vertical": "عمودي",
     "weight": "الوزن",
-    "width": "العرض"
+    "width": "العرض",
+    "outlineMethod": "طريقة الحدود",
+    "outlineExpansion": "توسيع",
+    "outlineContour": "حدود المسار",
+    "outlinePosition": "الموضع",
+    "outlineOutside": "الخارج",
+    "outlineCenter": "الوسط",
+    "outlineInside": "الداخل",
+    "outlineJoin": "الزوايا",
+    "outlineRound": "مستديرة",
+    "outlineMiter": "حادة",
+    "outlineBevel": "مشطوفة"
   },
   "languages": {
     "ar": "العربية",
@@ -374,6 +404,8 @@
     "copied": "تم النسخ",
     "copy": "نسخ الربط",
     "copyFailed": "تعذّ النسخ رابط",
+    "guest": "ضيف {{number}}",
+    "host": "المضيف",
     "hostOffline": "المديح غير متصل — توقف التعديل",
     "hosting": "مشاركة هذا المشروع",
     "join": "الانضمال إلى جلسة",
@@ -383,8 +415,14 @@
     "leave": "مغادرة",
     "linkCopied": "تم نسخ الرابط",
     "linkOffline": "توقفت المشاركة",
+    "memberJoined": "انضم {{name}} إلى الجلسة",
+    "members": "في هذه الجلسة",
+    "noPage": "لا توجد صفحة مفتوحة",
+    "onPage": "الصفحة {{number}}",
+    "onThisPage": "في هذه الصفحة: {{names}}",
     "share": "مشاركة الجلسة",
-    "stopShare": "إيقاف المشاركة"
+    "stopShare": "إيقاف المشاركة",
+    "you": "أنت"
   },
   "settings": {
     "appearance": {
@@ -417,7 +455,11 @@
       "pages": "الصفحات",
       "showPageNumbers": "إظهار أرقام الصفحات",
       "showPageNumbersDescription": "يعرض موضع كل صفحة أسفل اسمها في شريط الصفحات.",
-      "title": "ميزات NeKoharu"
+      "title": "ميزات NeKoharu",
+      "collaboration": "التعاون",
+      "displayName": "الاسم المعروض",
+      "displayNameDescription": "كيف تظهر للآخرين في جلسة مشتركة. اتركه فارغًا للحصول على اسم عشوائي.",
+      "randomName": "اختيار اسم عشوائي"
     },
     "backToEditor": "العودة إلى المحرّر",
     "generation": {
@@ -481,6 +523,9 @@
     "shortcuts": {
       "description": "تتوفّر اختصارات المفتاح الواحد عندما لا يكون حقل النص قيد التركيز.",
       "inputLabel": "اختصار {{action}}",
+      "nextPage": "الصفحة التالية",
+      "pages": "الصفحات",
+      "previousPage": "الصفحة السابقة",
       "title": "الاختصارات",
       "tools": "الأدوات"
     },

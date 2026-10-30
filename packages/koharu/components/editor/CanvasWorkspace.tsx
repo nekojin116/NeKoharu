@@ -74,6 +74,7 @@ const canvasCursors = {
 
 type Gesture =
   | { kind: 'pan'; pointer: number; start: Point; translation: [number, number] }
+  | { kind: 'brush_size'; pointer: number; start: Point; diameter: number }
   | {
       kind: 'select'
       pointer: number
@@ -249,6 +250,10 @@ export function CanvasWorkspace() {
     if (current?.kind === 'paint' || current?.kind === 'erase' || current?.kind === 'inpaint') {
       strokeUpdates.clear()
       canvas?.cancelStroke()
+    }
+    if (current?.kind === 'brush_size') {
+      const { brush, setBrush } = useKoharuStore.getState()
+      setBrush({ ...brush, diameter: current.diameter })
     }
     if (transformActive.current) {
       transformUpdates.clear()
@@ -547,6 +552,20 @@ export function CanvasWorkspace() {
       return
     }
 
+    if (current.kind === 'brush_size') {
+      // The circle stays where the drag began and its edge follows the
+      // pointer, so the radius grows by the horizontal travel.
+      setCursor(current.start)
+      const { brush: currentBrush, camera } = useKoharuStore.getState()
+      const diameter = clamp(
+        Math.round(current.diameter + (2 * (physical.x - current.start.x)) / camera.zoom),
+        MIN_BRUSH_DIAMETER,
+        maxBrushDiameter(page.size),
+      )
+      if (diameter !== currentBrush.diameter) setBrush({ ...currentBrush, diameter })
+      return
+    }
+
     const points = samples.map((value) => clientPagePoint(value.clientX, value.clientY))
     const point = points.at(-1)!
     if (current.kind === 'select') {
@@ -622,12 +641,12 @@ export function CanvasWorkspace() {
       const { zoom } = useKoharuStore.getState().camera
       setDraft(null)
       if (current.frame.width < 4 / zoom || current.frame.height < 4 / zoom) return
-      void call(commands.addOcrBox, current.frame, current.cleanup)
-        .then((result) => {
-          selectLayers([result.layer])
-          return refresh(projectKey, pagesKey, pageKey)
-        })
-        .catch(() => undefined)
+      // Cleaning detects the lettering in the box first, so its text layers
+      // arrive with the job rather than with this call.
+      const operation = current.cleanup
+        ? call(commands.cleanOcrBox, current.frame)
+        : call(commands.addOcrBox, current.frame).then((result) => selectLayers([result.layer]))
+      void operation.then(() => refresh(projectKey, pagesKey, pageKey)).catch(() => undefined)
     } else if (current.kind === 'paint' || current.kind === 'erase' || current.kind === 'inpaint') {
       strokeUpdates.commit()
       try {
@@ -681,7 +700,7 @@ export function CanvasWorkspace() {
           tabIndex={0}
           aria-label={t('canvas.surface')}
           aria-busy={page ? canvasState.status !== 'ready' : undefined}
-          className='relative min-h-0 min-w-0 flex-1 touch-none overflow-hidden bg-[var(--surface-canvas)] outline-none'
+          className='relative min-h-0 min-w-0 flex-1 touch-none overflow-hidden bg-[rgb(var(--workspace-background-rgb))] outline-none'
           style={{
             cursor: page && canvasState.status === 'ready' ? canvasCursors[tool] : undefined,
           }}
@@ -711,7 +730,15 @@ export function CanvasWorkspace() {
             const point = clientPagePoint(event.clientX, event.clientY)
             setCursor(physical)
 
-            if (event.button === 1 || tool === 'pan' || spaceHeld.current) {
+            if (event.button === 0 && event.ctrlKey && event.altKey && isBrushTool(tool)) {
+              // Clip Studio's brush resize; Photoshop uses the same keys on macOS.
+              gesture.current = {
+                kind: 'brush_size',
+                pointer: event.pointerId,
+                start: physical,
+                diameter: brush.diameter,
+              }
+            } else if (event.button === 1 || tool === 'pan' || spaceHeld.current) {
               gesture.current = {
                 kind: 'pan',
                 pointer: event.pointerId,

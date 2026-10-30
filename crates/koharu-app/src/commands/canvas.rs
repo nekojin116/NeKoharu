@@ -193,7 +193,6 @@ pub(crate) async fn add_text_box(
 #[specta::specta]
 pub(crate) async fn add_ocr_box(
     frame: Frame,
-    cleanup: bool,
     handle: AppHandle<CefRuntime>,
     desktop: State<'_, Desktop>,
     project: State<'_, CurrentProject>,
@@ -202,7 +201,7 @@ pub(crate) async fn add_ocr_box(
     if !handle.state::<Processing>().stops.lock().is_empty() {
         return Err(anyhow!("another process is already running").into());
     }
-    let (commit, box_page, page, layer, region) = {
+    let (commit, page, layer, region) = {
         let mut project = project.project.lock().await;
         let project = project.as_mut().context("no project is open")?;
         let box_page = project
@@ -210,39 +209,19 @@ pub(crate) async fn add_ocr_box(
             .context("the project has no active page")?;
         let (commit, layer, region) = project.add_ocr_box(box_page, frame).await?;
         project.record_commit(&commit);
-        (commit, box_page, project.active_page(), layer, region)
+        (commit, project.active_page(), layer, region)
     };
     desktop.synchronize(&commit.snapshot, page, &commit).await?;
     canvas_channel.channel.publish(desktop.canvas_state());
-    let mut stages = vec![
-        koharu_pipeline::Stage::Ocr,
-        koharu_pipeline::Stage::Translation,
-    ];
-    if cleanup {
-        let page_value = commit.snapshot.page(box_page)?.page()?;
-        let (width, height) = (
-            page_value.width.round() as u32,
-            page_value.height.round() as u32,
-        );
-        let geometry = commit
-            .snapshot
-            .component::<koharu_scene::Geometry>(region)?
-            .context("the OCR box region has no geometry")?;
-        let png = tokio_rayon::spawn(move || encode_polygon_mask(width, height, &geometry.points))
-            .await?;
-        // The box mask drives the same manual cleanup path as an inpaint stroke,
-        // while entity scope keeps OCR and translation on this box alone.
-        *handle.state::<Processing>().inpainting_mask.lock() =
-            Some(koharu_pipeline::InpaintingMask {
-                page: box_page,
-                png: Arc::from(png),
-            });
-        stages.push(koharu_pipeline::Stage::Inpainting);
-    }
     processing::process(
         handle.clone(),
         koharu_pipeline::Scope::Entities(vec![region, layer]),
-        koharu_pipeline::Operation::Stages { stages },
+        koharu_pipeline::Operation::Stages {
+            stages: vec![
+                koharu_pipeline::Stage::Ocr,
+                koharu_pipeline::Stage::Translation,
+            ],
+        },
         handle.state::<CurrentProject>(),
         handle.state::<Processing>(),
         handle.state::<JobChannel>(),
@@ -252,6 +231,75 @@ pub(crate) async fn add_ocr_box(
         revision: commit.revision,
         layer,
     })
+}
+
+/// Reads and cleans the text inside a box the user drew. Detection runs on the
+/// box first, so each piece of lettering in it gets its own text layer and
+/// only the lettering is cleaned; a box it finds nothing in is read and
+/// cleaned whole.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn clean_ocr_box(
+    frame: Frame,
+    handle: AppHandle<CefRuntime>,
+    project: State<'_, CurrentProject>,
+) -> Result<JobId, Error> {
+    // The box waits in the processing state for the job; refuse before
+    // leaving it there for a job that will not start.
+    if !handle.state::<Processing>().stops.lock().is_empty() {
+        return Err(anyhow!("another process is already running").into());
+    }
+    let geometry = super::project::Project::geometry_from_frame(frame)?;
+    let (min_x, min_y, max_x, max_y) = geometry.points.iter().fold(
+        (
+            f64::INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NEG_INFINITY,
+        ),
+        |(min_x, min_y, max_x, max_y), point| {
+            (
+                min_x.min(point.x),
+                min_y.min(point.y),
+                max_x.max(point.x),
+                max_y.max(point.y),
+            )
+        },
+    );
+    let page = project
+        .project
+        .lock()
+        .await
+        .as_ref()
+        .context("no project is open")?
+        .active_page()
+        .context("the project has no active page")?;
+    *handle.state::<Processing>().text_box.lock() =
+        Some(koharu_pipeline::TextBox { page, geometry });
+    Ok(processing::process(
+        handle.clone(),
+        koharu_pipeline::Scope::Region {
+            page,
+            bounds: koharu_pipeline::Bounds {
+                x: min_x,
+                y: min_y,
+                width: max_x - min_x,
+                height: max_y - min_y,
+            },
+        },
+        koharu_pipeline::Operation::Stages {
+            stages: vec![
+                koharu_pipeline::Stage::Detection,
+                koharu_pipeline::Stage::Ocr,
+                koharu_pipeline::Stage::Translation,
+                koharu_pipeline::Stage::Inpainting,
+            ],
+        },
+        handle.state::<CurrentProject>(),
+        handle.state::<Processing>(),
+        handle.state::<JobChannel>(),
+    )
+    .await?)
 }
 
 #[tauri::command]
@@ -431,65 +479,6 @@ pub(crate) async fn commit_inpaint(
         )
         .await?,
     ))
-}
-
-fn encode_polygon_mask(
-    width: u32,
-    height: u32,
-    polygon: &[koharu_scene::Point],
-) -> anyhow::Result<Vec<u8>> {
-    if width == 0 || height == 0 {
-        bail!("page dimensions must be positive");
-    }
-    let mut image = GrayImage::new(width, height);
-    let mut covered = false;
-    let (left, top, right, bottom) = polygon.iter().fold(
-        (
-            f64::INFINITY,
-            f64::INFINITY,
-            f64::NEG_INFINITY,
-            f64::NEG_INFINITY,
-        ),
-        |(left, top, right, bottom), point| {
-            (
-                left.min(point.x),
-                top.min(point.y),
-                right.max(point.x),
-                bottom.max(point.y),
-            )
-        },
-    );
-    let left = left.floor().clamp(0.0, f64::from(width)) as u32;
-    let top = top.floor().clamp(0.0, f64::from(height)) as u32;
-    let right = right.ceil().clamp(0.0, f64::from(width)) as u32;
-    let bottom = bottom.ceil().clamp(0.0, f64::from(height)) as u32;
-    for (x, y) in (top..bottom).flat_map(|y| (left..right).map(move |x| (x, y))) {
-        let (px, py) = (f64::from(x) + 0.5, f64::from(y) + 0.5);
-        let mut inside = false;
-        for (index, start) in polygon.iter().enumerate() {
-            let end = &polygon[(index + 1) % polygon.len()];
-            if (start.y > py) != (end.y > py)
-                && px < (end.x - start.x) * (py - start.y) / (end.y - start.y) + start.x
-            {
-                inside = !inside;
-            }
-        }
-        if inside {
-            image.put_pixel(x, y, image::Luma([u8::MAX]));
-            covered = true;
-        }
-    }
-    if !covered {
-        bail!("the OCR box does not intersect the page");
-    }
-    let mut png = Vec::new();
-    PngEncoder::new(&mut png).write_image(
-        image.as_raw(),
-        width,
-        height,
-        image::ExtendedColorType::L8,
-    )?;
-    Ok(png)
 }
 
 fn ensure_revision(actual: Revision, expected: Revision) -> anyhow::Result<()> {

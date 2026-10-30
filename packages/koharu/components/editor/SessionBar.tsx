@@ -1,13 +1,14 @@
 'use client'
 
-import { Check, Copy, Link2, LoaderCircle, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import type { TFunction } from 'i18next'
+import { Check, Copy, Link2, LoaderCircle, UserPlus, Users } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { call } from '@/lib/backend'
-import { pageKey, pagesKey, projectKey, refresh, usePage } from '@/lib/queries'
+import { pageKey, pagesKey, projectKey, refresh, usePage, usePages } from '@/lib/queries'
 import { sessionReadOnly, useKoharuStore } from '@/lib/store'
-import { commands, type SessionInfo } from '@koharu/bridge/protocol'
+import { commands, type SessionInfo, type SessionMember } from '@koharu/bridge/protocol'
 import { Badge } from '@koharu/ui/components/badge'
 import { Button } from '@koharu/ui/components/button'
 import { Input } from '@koharu/ui/components/input'
@@ -18,34 +19,95 @@ import { cn } from '@koharu/ui/lib/utils'
 const NOTICE_DURATION_MS = 4000
 const LINK_COPIED_MS = 2000
 
+const MEMBER_COLORS = [
+  'bg-sky-500',
+  'bg-amber-500',
+  'bg-violet-500',
+  'bg-rose-500',
+  'bg-teal-500',
+  'bg-lime-600',
+]
+
+/** The name a participant goes by, or their role and number when their
+ * machine did not say. */
+export function memberName(t: TFunction, member: SessionMember): string {
+  if (member.name) return member.name
+  return member.host ? t('session.host') : t('session.guest', { number: member.peer })
+}
+
+/** A participant's initial on their color; the color follows the peer id, so
+ * it matches across the rail and the share menu. */
+export function MemberAvatar({ member, className }: { member: SessionMember; className?: string }) {
+  const { t } = useTranslation()
+  const name = memberName(t, member)
+  return (
+    <span
+      aria-hidden='true'
+      className={cn(
+        'grid size-4 shrink-0 place-items-center rounded-full text-[8px] leading-none font-semibold text-white uppercase',
+        MEMBER_COLORS[member.peer % MEMBER_COLORS.length],
+        className,
+      )}
+    >
+      {name.trim().charAt(0)}
+    </span>
+  )
+}
+
 function statusKey(session: SessionInfo): string | null {
   if (session.role === 'hosting') return session.online ? 'session.hosting' : 'session.linkOffline'
   if (session.role === 'joined') return session.online ? 'session.joined' : 'session.hostOffline'
   return null
 }
 
-/** Announces each session status change over the canvas, then fades out; the
- * share menu keeps the status and actions afterwards. */
+/** Announces each session status change over the canvas, and to a host each
+ * guest that joins, then fades out; the share menu keeps the status, members,
+ * and actions afterwards. */
 export function SessionNotice() {
   const { t } = useTranslation()
   const status = useKoharuStore((state) => statusKey(state.session))
   const role = useKoharuStore((state) => state.session.role)
+  const members = useKoharuStore((state) => state.session.members)
   const warning = useKoharuStore(
     (state) =>
       sessionReadOnly(state.session) || (state.session.role === 'hosting' && !state.session.online),
   )
   const [visible, setVisible] = useState(false)
+  // The latest announcement wins: a status change clears a pending arrival.
+  const [joined, setJoined] = useState<string | null>(null)
+  const [announced, setAnnounced] = useState(0)
+  // Who was already here; null until first seen, so remounting mid-session
+  // does not announce everyone again.
+  const seen = useRef<Set<number> | null>(null)
 
   useEffect(() => {
     if (!status) return
+    setJoined(null)
+    setAnnounced((count) => count + 1)
+  }, [status])
+
+  useEffect(() => {
+    const arrivals =
+      role === 'hosting'
+        ? members.filter((member) => !member.you && seen.current?.has(member.peer) === false)
+        : []
+    seen.current = new Set(members.map((member) => member.peer))
+    if (arrivals.length === 0) return
+    setJoined(arrivals.map((member) => memberName(t, member)).join(', '))
+    setAnnounced((count) => count + 1)
+  }, [members, role, t])
+
+  useEffect(() => {
+    if (announced === 0) return
     setVisible(true)
     const timer = window.setTimeout(() => setVisible(false), NOTICE_DURATION_MS)
     return () => window.clearTimeout(timer)
-  }, [status])
+  }, [announced])
 
   if (!status) return null
 
-  const Icon = role === 'hosting' ? Link2 : Users
+  const Icon = joined ? UserPlus : role === 'hosting' ? Link2 : Users
+  const alert = warning && !joined
 
   return (
     <div
@@ -57,10 +119,8 @@ export function SessionNotice() {
       )}
     >
       <Icon className='size-3.5 shrink-0 text-muted-foreground' />
-      <span
-        className={cn('truncate', warning ? 'font-medium text-destructive' : 'text-foreground')}
-      >
-        {t(status)}
+      <span className={cn('truncate', alert ? 'font-medium text-destructive' : 'text-foreground')}>
+        {joined ? t('session.memberJoined', { name: joined }) : t(status)}
       </span>
     </div>
   )
@@ -71,6 +131,7 @@ export function SessionNotice() {
 export function SessionMenu() {
   const { t } = useTranslation()
   const page = usePage().data
+  const pages = usePages().data
   const session = useKoharuStore((state) => state.session)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -198,6 +259,41 @@ export function SessionMenu() {
               {t('common.experimental')}
             </Badge>
           </div>
+          {session.members.length > 0 && (
+            <section className='flex flex-col gap-0.5'>
+              <h3 className='px-1 text-[10px] font-normal text-muted-foreground'>
+                {t('session.members')}
+              </h3>
+              <ul className='flex flex-col'>
+                {session.members.map((member) => {
+                  const index = member.page
+                    ? (pages?.findIndex((entry) => entry.id === member.page) ?? -1)
+                    : -1
+                  return (
+                    <li key={member.peer} className='flex items-center gap-2 rounded-md px-1 py-1'>
+                      <MemberAvatar member={member} />
+                      <span className='min-w-0 truncate text-foreground'>
+                        {memberName(t, member)}
+                        {member.you && (
+                          <span className='text-muted-foreground'> ({t('session.you')})</span>
+                        )}
+                      </span>
+                      {member.host && (
+                        <Badge variant='outline' className='h-4 px-1.5 text-[9px] font-normal'>
+                          {t('session.host')}
+                        </Badge>
+                      )}
+                      <span className='ml-auto shrink-0 text-muted-foreground tabular-nums'>
+                        {index >= 0
+                          ? t('session.onPage', { number: index + 1 })
+                          : t('session.noPage')}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
           {hosting && session.link && (
             <div
               className='truncate rounded-md border border-border bg-muted/40 px-2 py-1.5 font-mono text-[10px] text-muted-foreground select-all'
