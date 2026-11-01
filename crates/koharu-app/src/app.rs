@@ -63,9 +63,11 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
     });
     #[cfg(target_os = "linux")]
     let cef = cef
-        .enable_features(["Vulkan", "VulkanFromANGLE"])
+        .allow_chromium_command_line_args(true)
+        .enable_features(["Vulkan"])
         .command_line_args([
             ("--enable-unsafe-webgpu", None),
+            ("--ignore-gpu-blocklist", None),
             ("use-angle", Some("vulkan")),
             ("--ozone-platform", Some("x11")),
         ]);
